@@ -1,0 +1,223 @@
+       IDENTIFICATION                            DIVISION.
+      ******************************************************************
+       PROGRAM-ID. LISTA_ESCOLA.
+       AUTHOR. KERESTES.
+       DATE-WRITTEN. JUNE 18, 2022.
+       ******************************************************************
+      *                                                                *
+      *    O PROGRAMA RECEBE O REGISTRO DOS ALUNOS E PRODUZ            *
+      *            UMA LISTA DE CHAMADA POR IDADE                      *
+      *                                                                *
+      ******************************************************************
+       ENVIRONMENT                               DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT                       SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL. 
+           SELECT REGISTROS ASSIGN TO 'registro_alunos.seq'
+           ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT LISTA_CLASSE ASSIGN TO 'lista_classe.seq'
+           ORGANIZATION IS LINE SEQUENTIAL.
+      ******************************************************************
+       DATA                                      DIVISION.
+      ******************************************************************
+       FILE                               SECTION.
+      *-----------------------------------------------------------------
+       FD  REGISTROS.
+       01  REGISTRO.  
+           02 R-NOM.
+              03 R-SOBRENOME PIC X(30).
+              03 R-NOME PIC X(15).
+           02  DATE-NAISSANCE.
+              03 R-DIA PIC 9(03).
+              03 R-MES PIC 9(03).
+              03 R-ANO PIC 9(5).
+           02  ADRESSE.
+              03 RUA PIC X(40).
+              03 ESTADO PIC X(30).
+              03 CEP PIC 9(5).
+       FD  LISTA_CLASSE.
+       01  CLASSES.
+           02 LC-NOME PIC X(30).
+           02 DATA-NASCIMENTO.
+              03 LC-DIA PIC 9(02).
+              03 LC-MES PIC 9(02).
+              03 LC-ANO PIC 9(04).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE                   SECTION.
+      *-----------------------------------------------------------------
+       01  WS-FLAG PIC X(1).
+       01  WS-REG.
+           02 WS-SOBRENOME PIC X(30).
+           02  WS-DATA-NASCIMENTO2.
+                03 WS-DIA-REG PIC 9(02).
+                03 FILLER  PIC X(1) VALUE '/'.
+                03 WS-MES-REG PIC 9(02).
+                03 FILLER  PIC X(1) VALUE '/'.
+                03 WS-ANO-REG PIC 9(04).
+       01  WS-DATA-NASCIMENTO.
+           02 WS-ANO PIC 9(04).
+           02 WS-MES PIC 9(02).
+           02 WS-DIA PIC 9(02).
+       01  WS-CABECALHO-1.
+           02 WS-CLASSE PIC X(30).
+           02 WS-DIA-S PIC X(30).
+       01  WS-CABECALHO-2.
+           02 FILLER PIC X(20) VALUE ALL '-'.
+           02 FILLER PIC X(10) VALUE SPACES.
+           02 FILLER PIC X(20) VALUE ALL '-'.
+       01  WS-VAR PIC 9(1) VALUE 1.
+       01  WS-INT-HOJE PIC 9(8).
+       01  WS-INT-NASC PIC 9(8).
+       01  WS-IDADE PIC 9(8).
+       01  WS-FRASE.
+           02 WS-FRASE-1 PIC X(22) VALUE 'O NUMERO DE ALUNOS EH '.
+           02 WS-CONTADOR PIC 9(2).
+      ******************************************************************
+       PROCEDURE                                 DIVISION.
+      ******************************************************************
+           OPEN OUTPUT LISTA_CLASSE.
+      *
+           MOVE FUNCTION CURRENT-DATE (1:8) TO WS-INT-HOJE.
+           MOVE FUNCTION INTEGER-OF-DATE(WS-INT-HOJE) TO WS-INT-HOJE.
+      *
+           PERFORM 6 TIMES
+              EVALUATE WS-VAR
+                 WHEN 1
+                    OPEN INPUT REGISTROS
+                    MOVE 'BABY' TO WS-CLASSE
+                    MOVE 'SEGUNDA ET QUARTA-FEIRA' TO WS-DIA-S
+                    PERFORM WRITE1
+                    PERFORM READ-REC
+                    PERFORM UNTIL WS-FLAG = 'Y'
+                    PERFORM CALCUL-IDADE
+                    IF WS-IDADE < 1824
+                       ADD 1 TO WS-CONTADOR
+                       PERFORM MOVE-WRITE
+                    END-IF
+                    PERFORM READ-REC
+                    END-PERFORM
+                    WRITE CLASSES FROM WS-FRASE 
+                    MOVE 0 TO WS-CONTADOR
+                    CLOSE REGISTROS
+                 WHEN 2
+                    OPEN INPUT REGISTROS
+                    MOVE 'INFANTIL 1' TO WS-CLASSE
+                    MOVE 'TERCA E QUINTA-FEIRA' TO WS-DIA-S
+                    PERFORM WRITE1
+                    PERFORM READ-REC
+                    PERFORM UNTIL WS-FLAG = 'Y'
+                    PERFORM CALCUL-IDADE
+                    IF WS-IDADE > 1824 AND < 2919 
+                       ADD 1 TO WS-CONTADOR
+                       PERFORM MOVE-WRITE
+                    END-IF
+                    PERFORM READ-REC
+                    END-PERFORM
+                    WRITE CLASSES FROM WS-FRASE 
+                    MOVE 0 TO WS-CONTADOR
+                    CLOSE REGISTROS
+                 WHEN 3
+                    OPEN INPUT REGISTROS
+                    MOVE 'INFANTIL 2' TO WS-CLASSE
+                    MOVE 'QUARTA E SEXTA-FEIRA' TO WS-DIA-S
+                    PERFORM WRITE1
+                    PERFORM READ-REC
+                    PERFORM UNTIL WS-FLAG = 'Y'
+                    PERFORM CALCUL-IDADE
+                    IF WS-IDADE > 2919 AND < 4379
+                       ADD 1 TO WS-CONTADOR 
+                       PERFORM MOVE-WRITE
+                    END-IF
+                    PERFORM READ-REC
+                    END-PERFORM
+                    WRITE CLASSES FROM WS-FRASE 
+                    MOVE 0 TO WS-CONTADOR
+                    CLOSE REGISTROS
+                 WHEN 4
+                    OPEN INPUT REGISTROS
+                    MOVE 'JUVENIL 1' TO WS-CLASSE
+                    MOVE 'TERCA ET SABADO' TO WS-DIA-S
+                    PERFORM WRITE1
+                    PERFORM READ-REC
+                    PERFORM UNTIL WS-FLAG = 'Y'
+                    PERFORM CALCUL-IDADE
+                    IF WS-IDADE > 4379 AND < 5109
+                       ADD 1 TO WS-CONTADOR 
+                       PERFORM MOVE-WRITE
+                    END-IF
+                    PERFORM READ-REC
+                    END-PERFORM
+                    WRITE CLASSES FROM WS-FRASE 
+                    MOVE 0 TO WS-CONTADOR
+                    CLOSE REGISTROS
+                 WHEN 5
+                    OPEN INPUT REGISTROS
+                    MOVE 'JUVENIL 2' TO WS-CLASSE
+                    MOVE 'SEGUNDA-FEIRA E SABADO' TO WS-DIA-S
+                    PERFORM WRITE1
+                    PERFORM READ-REC
+                    PERFORM UNTIL WS-FLAG = 'Y'
+                    PERFORM CALCUL-IDADE
+                    IF WS-IDADE > 5109 AND < 6569
+                       ADD 1 TO WS-CONTADOR 
+                       PERFORM MOVE-WRITE
+                    END-IF
+                    PERFORM READ-REC
+                    END-PERFORM
+                    WRITE CLASSES FROM WS-FRASE 
+                    MOVE 0 TO WS-CONTADOR
+                    CLOSE REGISTROS
+                 WHEN 6
+                    OPEN INPUT REGISTROS
+                    MOVE 'ADULTO' TO WS-CLASSE
+                    MOVE 'QUINTA E SEXTA-FEIRA' TO WS-DIA-S
+                    PERFORM WRITE1
+                    PERFORM READ-REC
+                    PERFORM UNTIL WS-FLAG = 'Y'
+                    PERFORM CALCUL-IDADE
+                    IF WS-IDADE > 6569
+                       ADD 1 TO WS-CONTADOR 
+                       PERFORM MOVE-WRITE
+                    END-IF
+                    PERFORM READ-REC
+                    END-PERFORM
+                    WRITE CLASSES FROM WS-FRASE 
+                    MOVE 0 TO WS-CONTADOR
+                    CLOSE REGISTROS
+               END-EVALUATE
+              MOVE SPACES TO CLASSES
+              WRITE CLASSES AFTER ADVANCING 1 LINES
+              ADD 1 TO WS-VAR
+              MOVE SPACES TO WS-FLAG
+           END-PERFORM.
+      *   
+           CLOSE LISTA_CLASSE.
+      *
+           STOP RUN.
+      *     
+       MOVE-WRITE.
+           MOVE R-SOBRENOME TO WS-SOBRENOME
+           MOVE R-DIA  TO WS-DIA-REG 
+           MOVE R-MES  TO WS-MES-REG 
+           MOVE R-ANO  TO WS-ANO-REG 
+           WRITE CLASSES FROM WS-REG.
+      *
+       WRITE1. 
+           WRITE CLASSES FROM WS-CABECALHO-1
+           WRITE CLASSES FROM WS-CABECALHO-2
+           MOVE SPACES TO CLASSES
+           WRITE CLASSES AFTER ADVANCING 1 LINES.
+      *
+       READ-REC.
+           READ REGISTRES
+           AT END MOVE 'Y' TO WS-FLAG
+           END-READ.
+      *    
+       CALCUL-IDADE.
+           MOVE R-DIA TO WS-DIA
+           MOVE R-MES TO WS-MES
+           MOVE R-ANO TO WS-ANO 
+           MOVE WS-DAT1-NASCIMENTO TO WS-INT-NASC 
+           MOVE FUNCTION INTEGER-OF-DATE (WS-INT-NASC) TO WS-INT-NASC
+           SUBTRACT WS-INT-NASC FROM WS-INT-HOJE GIVING WS-IDADE.
