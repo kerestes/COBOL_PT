@@ -1,0 +1,55 @@
+       IDENTIFICATION                      DIVISION.
+       PROGRAM-ID. EXERCICE_1B.
+       AUTHOR. KERESTES
+       DATE-WRITTEN. JUNE 18, 2022.
+      ******************************************************************
+      *                                                                *
+      *       O PROGRAMA CRIA UMA LISTA DE NUMEROS ALEATOREOS          *
+      *                                                                *
+      ******************************************************************
+       ENVIRONMENT                         DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT             SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL.
+           SELECT CHIFFRE ASSIGN TO "lista_numeros.seq"
+           ORGANIZATION IS SEQUENTIAL.
+      ******************************************************************
+       DATA                                DIVISION.
+      ****************************************************************** 
+       FILE                     SECTION.
+      *-----------------------------------------------------------------
+       FD  CIFRA.
+       01  NUMERO PIC 9(3).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE          SECTION.
+      *-----------------------------------------------------------------
+       01  WS-NUM PIC 9(3) OCCURS 10 TIMES.
+       01  WS-RANDOM PIC 9(2) VALUE 7.
+       01  WS-CONTADOR PIC 9(2) VALUE 1.
+       01  WS-HORA.
+           02 WS-HH PIC 9(2).
+           02 WS-MM PIC 9(2).
+           02 WS-SS PIC 9(2).
+           02 WS-MS PIC 9(2).
+      ******************************************************************
+       PROCEDURE                           DIVISION.
+      ******************************************************************
+           OPEN OUTPUT CIFRA.
+      *     
+           ACCEPT WS-HORA FROM TIME.
+           PERFORM 5 TIMES
+              COMPUTE WS-NUM(WS-CONTADOR) = WS-RANDOM * WS-SS 
+              ADD 1 TO WS-CONTADOR
+              MULTIPLY 3 BY WS-RANDOM
+              COMPUTE WS-NUM(WS-CONTADOR) = WS-RANDOM * WS-MS 
+              ADD 1 TO WS-CONTADOR
+              MULTIPLY 7 BY WS-RANDOM
+           END-PERFORM.
+           MOVE 1 TO WS-CONTADOR.
+           PERFORM 10 TIMES
+              WRITE NUMERO FROM WS-NUM(WS-CONTADOR)
+              ADD 1 TO WS-CONTEUR
+           END-PERFORM.
+           CLOSE CIFRA.
+           STOP RUN.
