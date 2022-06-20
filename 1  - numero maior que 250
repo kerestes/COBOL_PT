@@ -1,0 +1,43 @@
+       IDENTIFICATION                      DIVISION.
+       PROGRAM-ID. EXERCICE_1.
+       AUTHOR. KERESTES
+       DATE-WRITTEN. JUNE 17, 2022.
+      ******************************************************************
+      *                                                                *
+      *    O PROGRAMA RECEBE UMA LISTA DE NUMERO E SELECIONA SOMENTE   *
+      *               AQUELES QUE SAO SUPERIORES A 250                 *
+      *                                                                *
+      ******************************************************************
+       ENVIRONMENT                         DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT             SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL.
+           SELECT CIFRA ASSIGN TO "lista_numeros.seq"
+           ORGANIZATION IS SEQUENTIAL.
+      ******************************************************************
+       DATA                                DIVISION.
+      ****************************************************************** 
+       FILE                     SECTION.
+      *-----------------------------------------------------------------
+       FD  CIFRA.
+       01 NUMERO PIC 9(3).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE          SECTION.
+      *-----------------------------------------------------------------
+       01  WS-NUM PIC 9(3).
+       01  WS-EOF PIC A(1).
+      ******************************************************************
+       PROCEDURE                           DIVISION.
+      ******************************************************************
+           OPEN INPUT CIFRA.
+      *
+           PERFORM UNTIL WS-EOF = 'Y'
+              READ CIFRA INTO WS-NUM
+              AT END MOVE 'Y' TO WS-EOF 
+              NOT AT END IF WS-NUM > 250
+                 DISPLAY WS-NUM 
+              END-IF
+           END-PERFORM.
+           CLOSE CIFRA.
+           STOP RUN.
