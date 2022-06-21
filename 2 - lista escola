@@ -1,13 +1,12 @@
+      ******************************************************************
+      * Author: KERESTES
+      * Date: JUNHO 18, 2022.
+      * Purpose: EXERCICE
+      * Tectonics: cobc
+      ******************************************************************
        IDENTIFICATION                            DIVISION.
       ******************************************************************
        PROGRAM-ID. LISTA_ESCOLA.
-       AUTHOR. KERESTES.
-       DATE-WRITTEN. JUNE 18, 2022.
-       ******************************************************************
-      *                                                                *
-      *    O PROGRAMA RECEBE O REGISTRO DOS ALUNOS E PRODUZ            *
-      *            UMA LISTA DE CHAMADA POR IDADE                      *
-      *                                                                *
       ******************************************************************
        ENVIRONMENT                               DIVISION.
       ******************************************************************
@@ -24,31 +23,32 @@
        FILE                               SECTION.
       *-----------------------------------------------------------------
        FD  REGISTROS.
-       01  REGISTRO.  
-           02 R-NOM.
-              03 R-SOBRENOME PIC X(30).
-              03 R-NOME PIC X(15).
-           02  DATE-NAISSANCE.
+       01  REGISTR0.  
+           02 SOBRENOME1.
+              03 SOBRENOME2 PIC X(30).
+              03 NOME PIC X(15).
+           02  DATA-NASCIMENTO.
               03 R-DIA PIC 9(03).
               03 R-MES PIC 9(03).
               03 R-ANO PIC 9(5).
-           02  ADRESSE.
+           02  ENDERECO.
               03 RUA PIC X(40).
               03 ESTADO PIC X(30).
               03 CEP PIC 9(5).
        FD  LISTA_CLASSE.
        01  CLASSES.
-           02 LC-NOME PIC X(30).
+           02 NOM PIC X(30).
            02 DATA-NASCIMENTO.
               03 LC-DIA PIC 9(02).
               03 LC-MES PIC 9(02).
               03 LC-ANO PIC 9(04).
+              03 FILLER   PIC X(22).
       *-----------------------------------------------------------------
        WORKING-STORAGE                   SECTION.
       *-----------------------------------------------------------------
        01  WS-FLAG PIC X(1).
        01  WS-REG.
-           02 WS-SOBRENOME PIC X(30).
+           02 WS-SOBRENOME2 PIC X(30).
            02  WS-DATA-NASCIMENTO2.
                 03 WS-DIA-REG PIC 9(02).
                 03 FILLER  PIC X(1) VALUE '/'.
@@ -68,11 +68,14 @@
            02 FILLER PIC X(20) VALUE ALL '-'.
        01  WS-VAR PIC 9(1) VALUE 1.
        01  WS-INT-HOJE PIC 9(8).
-       01  WS-INT-NASC PIC 9(8).
+       01  WS-INT-NAS PIC 9(8).
        01  WS-IDADE PIC 9(8).
        01  WS-FRASE.
-           02 WS-FRASE-1 PIC X(22) VALUE 'O NUMERO DE ALUNOS EH '.
+           02 WS-FRASE-1 PIC X(22) VALUE 'LE NOMBRE DELEVE EST '.
            02 WS-CONTADOR PIC 9(2).
+       01  WS-INTERVALO-IDADE.
+           02 WS-IDADE-MIN PIC 9(7).
+           02 WS-IDADE-MAX PIC 9(7).
       ******************************************************************
        PROCEDURE                                 DIVISION.
       ******************************************************************
@@ -84,108 +87,48 @@
            PERFORM 6 TIMES
               EVALUATE WS-VAR
                  WHEN 1
-                    OPEN INPUT REGISTROS
+                    MOVE 0 TO WS-IDAE-MIN
+                    MOVE 1824 TO WS-IDADE-MAX
                     MOVE 'BABY' TO WS-CLASSE
-                    MOVE 'SEGUNDA ET QUARTA-FEIRA' TO WS-DIA-S
-                    PERFORM WRITE1
-                    PERFORM READ-REC
-                    PERFORM UNTIL WS-FLAG = 'Y'
-                    PERFORM CALCUL-IDADE
-                    IF WS-IDADE < 1824
-                       ADD 1 TO WS-CONTADOR
-                       PERFORM MOVE-WRITE
-                    END-IF
-                    PERFORM READ-REC
-                    END-PERFORM
-                    WRITE CLASSES FROM WS-FRASE 
-                    MOVE 0 TO WS-CONTADOR
-                    CLOSE REGISTROS
+                    MOVE 'SEGUNDA E QUARTA-FEIRA' TO WS-DIA-S
+                    PERFORM ROTINA-PRINCIPAL
                  WHEN 2
-                    OPEN INPUT REGISTROS
+                    MOVE 1824 TO WS-IDADE-MIN 
+                    MOVE 2919 TO WS-IDADE-MAX 
                     MOVE 'INFANTIL 1' TO WS-CLASSE
                     MOVE 'TERCA E QUINTA-FEIRA' TO WS-DIA-S
-                    PERFORM WRITE1
-                    PERFORM READ-REC
-                    PERFORM UNTIL WS-FLAG = 'Y'
-                    PERFORM CALCUL-IDADE
-                    IF WS-IDADE > 1824 AND < 2919 
-                       ADD 1 TO WS-CONTADOR
-                       PERFORM MOVE-WRITE
-                    END-IF
-                    PERFORM READ-REC
-                    END-PERFORM
-                    WRITE CLASSES FROM WS-FRASE 
-                    MOVE 0 TO WS-CONTADOR
-                    CLOSE REGISTROS
+                    PERFORM ROTINA-PRINCIPAL
                  WHEN 3
-                    OPEN INPUT REGISTROS
+                    MOVE 2919 TO WS-IDADE-MIN
+                    MOVE 4379 TO WS-IDADE-MAX
                     MOVE 'INFANTIL 2' TO WS-CLASSE
-                    MOVE 'QUARTA E SEXTA-FEIRA' TO WS-DIA-S
-                    PERFORM WRITE1
-                    PERFORM READ-REC
-                    PERFORM UNTIL WS-FLAG = 'Y'
-                    PERFORM CALCUL-IDADE
-                    IF WS-IDADE > 2919 AND < 4379
-                       ADD 1 TO WS-CONTADOR 
-                       PERFORM MOVE-WRITE
-                    END-IF
-                    PERFORM READ-REC
-                    END-PERFORM
-                    WRITE CLASSES FROM WS-FRASE 
-                    MOVE 0 TO WS-CONTADOR
-                    CLOSE REGISTROS
+                    MOVE 'QUARTA ET SEXTA-FEIRA' TO WS-DIA-S
+                    PERFORM ROTINA-PRINCIPAL
                  WHEN 4
-                    OPEN INPUT REGISTROS
+                    MOVE 4379 TO WS-IDADE-MIN
+                    MOVE 5109 TO WS-IDADE-MAX
                     MOVE 'JUVENIL 1' TO WS-CLASSE
-                    MOVE 'TERCA ET SABADO' TO WS-DIA-S
-                    PERFORM WRITE1
-                    PERFORM READ-REC
-                    PERFORM UNTIL WS-FLAG = 'Y'
-                    PERFORM CALCUL-IDADE
-                    IF WS-IDADE > 4379 AND < 5109
-                       ADD 1 TO WS-CONTADOR 
-                       PERFORM MOVE-WRITE
-                    END-IF
-                    PERFORM READ-REC
-                    END-PERFORM
-                    WRITE CLASSES FROM WS-FRASE 
-                    MOVE 0 TO WS-CONTADOR
-                    CLOSE REGISTROS
+                    MOVE 'TERCA-FEIRA E SABADO' TO WS-JOUR-S
+                    PERFORM ROTINA-PRINCIPAL
                  WHEN 5
-                    OPEN INPUT REGISTROS
+                    MOVE 5109 TO WS-IDADE-MIN
+                    MOVE 6569 TO WS-IDADE-MAX
                     MOVE 'JUVENIL 2' TO WS-CLASSE
-                    MOVE 'SEGUNDA-FEIRA E SABADO' TO WS-DIA-S
-                    PERFORM WRITE1
-                    PERFORM READ-REC
-                    PERFORM UNTIL WS-FLAG = 'Y'
-                    PERFORM CALCUL-IDADE
-                    IF WS-IDADE > 5109 AND < 6569
-                       ADD 1 TO WS-CONTADOR 
-                       PERFORM MOVE-WRITE
-                    END-IF
-                    PERFORM READ-REC
-                    END-PERFORM
-                    WRITE CLASSES FROM WS-FRASE 
-                    MOVE 0 TO WS-CONTADOR
-                    CLOSE REGISTROS
+                    MOVE 'SEGUNDA-FEIRA ET SABADO' TO WS-DIA-S
+                    PERFORM ROTINA-PRINCIPAL
                  WHEN 6
-                    OPEN INPUT REGISTROS
+                    MOVE 6569 TO WS-IDADE-MIN
+                    MOVE 70001 TO WS-IDADE-MAX
                     MOVE 'ADULTO' TO WS-CLASSE
-                    MOVE 'QUINTA E SEXTA-FEIRA' TO WS-DIA-S
-                    PERFORM WRITE1
-                    PERFORM READ-REC
-                    PERFORM UNTIL WS-FLAG = 'Y'
-                    PERFORM CALCUL-IDADE
-                    IF WS-IDADE > 6569
-                       ADD 1 TO WS-CONTADOR 
-                       PERFORM MOVE-WRITE
-                    END-IF
-                    PERFORM READ-REC
-                    END-PERFORM
-                    WRITE CLASSES FROM WS-FRASE 
-                    MOVE 0 TO WS-CONTADOR
-                    CLOSE REGISTROS
-               END-EVALUATE
+                    MOVE 'QUINTA ET SEXTA-FEIRA' TO WS-DIA-S
+                    PERFORM ROTINA-PRINCIPAL
+              END-EVALUATE
+      *        
+              MOVE SPACES TO CLASSES
+              WRITE CLASSES AFTER ADVANCING 1 LINES
+              WRITE CLASSES FROM WS-FRASE 
+              MOVE 0 TO WS-CONTADOR
+      *       
               MOVE SPACES TO CLASSES
               WRITE CLASSES AFTER ADVANCING 1 LINES
               ADD 1 TO WS-VAR
@@ -196,28 +139,54 @@
       *
            STOP RUN.
       *     
-       MOVE-WRITE.
-           MOVE R-SOBRENOME TO WS-SOBRENOME
+       ROTINA-PRINCIPAL                 SECTION.
+           OPEN INPUT REGISTROS
+               PERFORM WRITE1
+               PERFORM READ-REC
+               PERFORM UNTIL WS-FLAG = 'Y'
+                  PERFORM CALCUL-IDADE
+                  IF WS-IDADE > WS-IDADE-MIN AND < WS-IDADE-MAX
+                     ADD 1 TO WS-CONTADOR
+                     PERFORM MOVE-WRITE
+                  END-IF
+                  PERFORM READ-REC
+               END-PERFORM
+           CLOSE REGISTROS.
+       ROTINA-PRINCIPAL-EXIT.
+           EXIT.
+      * 
+       MOVE-WRITE                        SECTION.
+           MOVE SOBRENOME2 TO WS-SOBRENOME2
            MOVE R-DIA  TO WS-DIA-REG 
            MOVE R-MES  TO WS-MES-REG 
            MOVE R-ANO  TO WS-ANO-REG 
            WRITE CLASSES FROM WS-REG.
+       MOVE-WRITE-EXIT.
+           EXIT.
+       
       *
-       WRITE1. 
+       WRITE1                            SECTION. 
            WRITE CLASSES FROM WS-CABECALHO-1
            WRITE CLASSES FROM WS-CABECALHO-2
            MOVE SPACES TO CLASSES
            WRITE CLASSES AFTER ADVANCING 1 LINES.
+       WRITE1-EXIT.
+           EXIT.
       *
-       READ-REC.
+       READ-REC                          SECTION.
            READ REGISTRES
            AT END MOVE 'Y' TO WS-FLAG
            END-READ.
+       READ-REC-EXIT.
+           EXIT.
       *    
-       CALCUL-IDADE.
+       CALCUL-IDADE                        SECTION.
            MOVE R-DIA TO WS-DIA
            MOVE R-MES TO WS-MES
            MOVE R-ANO TO WS-ANO 
-           MOVE WS-DAT1-NASCIMENTO TO WS-INT-NASC 
-           MOVE FUNCTION INTEGER-OF-DATE (WS-INT-NASC) TO WS-INT-NASC
-           SUBTRACT WS-INT-NASC FROM WS-INT-HOJE GIVING WS-IDADE.
+           MOVE WS-DATA-NASCIMENTO TO WS-INT-NAS 
+           MOVE FUNCTION INTEGER-OF-DATE (WS-INT-NAS) TO WS-INT-NAS
+           SUBTRACT WS-INT-NAS FROM WS-INT-HOJE GIVING WS-IDADE.
+       CALCUL-IDADE-EXIT.
+           EXIT.
+      *
