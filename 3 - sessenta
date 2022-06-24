@@ -1,0 +1,184 @@
+      ******************************************************************
+      * Author: KERESTES
+      * Date: JUNE 23, 2022.
+      * Purpose: EXERCICE
+      * Tectonics: cobc
+      ******************************************************************
+      *
+      * O EXERCICIO VERIFICA SE A PESSOA CADASTRADA TEM MAIS DE 60
+      *
+      ******************************************************************
+       IDENTIFICATION                         DIVISION.
+       PROGRAM-ID. SESSENTA_ANOS.
+      ******************************************************************
+       ENVIRONMENT                            DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT                  SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL.    
+           SELECT SESSENTA_ANOS ASSIGN TO 'sessenta.txt'
+           ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT CADASTRO ASSIGN TO 'exercicio_6.txt'
+           ORGANIZATION IS LINE SEQUENTIAL.
+      ******************************************************************
+       DATA                                   DIVISION.
+      ******************************************************************
+       FILE                          SECTION.
+      *-----------------------------------------------------------------
+       FD  CADASTRO.
+       01  CAD-INFORMACOES.
+           02 CAD-CODIGO-CLIENTE PIC 9(4).
+           02 FILLER PIC X.
+           02 CAD-NOME1.
+              03 CAD-NOME2 PIC X(10).
+              03 CAD-SOBRENOME PIC X(10).
+           02 CAD-ENDERECO PIC X(30).
+           02 CAD-TELEFONE.
+              03 FILLER PIC 9.
+              03 FILLER PIC X.
+              03 FILLER PIC 9(3).
+              03 FILLER PIC X.
+              03 FILLER PIC 9(3).
+              03 FILLER PIC X.
+              03 FILLER PIC 9(4).
+              03 FILLER PIC X.
+           02 CAD-DATA-NASCIMENTO.
+              03 CAD-MES PIC 9(2).
+              03 FILLER PIC X.
+              03 CAD-DIA PIC 9(2).
+              03 FILLER PIC X.
+              03 CAD-ANO PIC 9(4).
+           02 CAD-CIDADE PIC X(15).
+       FD  SESSENTA_ANOS.
+       01  OUT-INFORMACOES.
+           02 OUT-CODIGO-CLIENTE PIC 9(4).
+           02 FILLER PIC X.
+           02 OUT-NOME.
+              03 OUT-NOME PIC X(10).
+              03 OUT-SOBRENOME PIC X(10).
+           02 OUT-ENDERECO PIC X(30).
+           02 OUT-TELEFONE.
+              03 FILLER PIC 9.
+              03 FILLER PIC X.
+              03 FILLER PIC 9(3).
+              03 FILLER PIC X.
+              03 FILLER PIC 9(3).
+              03 FILLER PIC X.
+              03 FILLER PIC 9(4).
+           02 OUT-DATA-NASCIMENTO.
+              03 OUT-MES PIC 9(2).
+              03 FILLER PIC X(1).
+              03 OUT-DIA PIC 9(2).
+              03 FILLER PIC X(1).
+              03 OUT-ANO PIC 9(4).
+           02 OUT-CIDADE PIC X(15).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE               SECTION.
+       01  WS-FLAG PIC X.
+       01  WS-LIDOS PIC 9(3) VALUE ZEROS.
+       01  WS-GRAVADOS PIC 9(3) VALUE ZEROS.
+       01  WS-IGNORADOS PIC 9(3) VALUE ZEROS.
+       01  WS-DATA-NASCIMENTO.
+           02 WS-ANO PIC 9(4).
+           02 WS-MES PIC 9(2).
+           02 WS-DIA PIC 9(2).
+       01  WS-INT-NASCIMENTO PIC 9(8).
+       01  WS-INT-HOJE PIC 9(8).
+       01  WS-INT-IDADE PIC 9(8).
+       01  WS-CABECALHO1.
+           02 FILLER PIC X(5) VALUE 'COD'.
+           02 FILLER PIC X(10) VALUE 'NOME'.
+           02 FILLER PIC X(10) VALUE 'SOBRENOME'.
+           02 FILLER PIC X(30) VALUE 'ENDERECO'.
+           02 FILLER PIC X(14) VALUE 'TELEFONE'.
+           02 FILLER PIC X(12) VALUE 'NASCIMENTO'.
+           02 FILLER PIC X(13) VALUE 'CIDADE'.
+       01  WS-CABECALHO2.
+           02 FILLER PIC X(5) VALUE '---'.
+           02 FILLER PIC X(10) VALUE '-------'.
+           02 FILLER PIC X(10) VALUE '-------'.
+           02 FILLER PIC X(30) VALUE '--------------------'.
+           02 FILLER PIC X(14) VALUE '----------'.
+           02 FILLER PIC X(10) VALUE '-------'.
+           02 FILLER PIC X(15) VALUE '----------'.
+       01  WS-FRASE1 PIC X(23) VALUE ' REGISTROS FORAM LIDOS'.
+       01  WS-FRASE2 PIC x(26) VALUE ' REGISTROS FORAM GRAVADOS'.
+       01  WS-FRASE3 PIC x(30) VALUE ' REGISTROS NAO FORAM GRAVADOS'.
+       01  WS-FRASE4.
+           02 WS-NUMERO PIC 9(3).
+           02 WS-FRASE-R PIC X(30).
+      ******************************************************************
+       PROCEDURE                              DIVISION.
+      ******************************************************************
+           OPEN INPUT CADASTRO.
+           OPEN OUTPUT SESSENTA_ANOS.
+           
+           WRITE OUT-INFORMACOES FROM WS-CABECALHO1.
+           WRITE OUT-INFORMACOES FROM WS-CABECALHO2.
+           MOVE SPACES TO OUT-INFORMACOES.
+           WRITE OUT-INFORMACOES AFTER ADVANCING 1 LINE.
+
+           COMPUTE WS-INT-HOJE = FUNCTION INTEGER-OF-DATE
+                                 (FUNCTION CURRENT-DATE (1:8)).
+            
+           
+           PERFORM LEITURA 
+           PERFORM UNTIL WS-FLAG = 'Y'
+              
+              PERFORM CALCULO-IDADE
+
+              IF WS-INT-IDADE > 21910
+                 WRITE OUT-INFORMACOES FROM CAD-INFORMACOES
+                 ADD 1 TO WS-GRAVADOS
+              ELSE
+                 ADD 1 TO WS-IGNORADOS
+              END-IF
+              
+              ADD 1 TO WS-LIDOS
+           
+           PERFORM LEITURA 
+
+           END-PERFORM.
+
+           MOVE SPACES TO OUT-INFORMACOES.
+           WRITE OUT-INFORMACOES AFTER ADVANCING 1 LINE.
+
+           MOVE WS-LIDOS TO WS-NUMERO.
+           MOVE WS-FRASE1 TO WS-FRASE-R.
+           WRITE OUT-INFORMACOES FROM WS-FRASE4.
+
+           MOVE WS-GRAVADOS  TO WS-NUMERO.
+           MOVE WS-FRASE2 TO WS-FRASE-R.
+           WRITE OUT-INFORMACOES FROM WS-FRASE4.
+
+           MOVE WS-IGNORADOS  TO WS-NUMERO.
+           MOVE WS-FRASE3 TO WS-FRASE-R.
+           WRITE OUT-INFORMACOES FROM WS-FRASE4.
+
+           CLOSE SESSENTA_ANOS.
+           CLOSE CADASTRO.
+
+           STOP RUN.
+
+      *-----------------------------------------------------------------
+       LEITURA                       SECTION.
+           READ CADASTRO
+           AT END MOVE 'Y' TO WS-FLAG
+           END-READ.
+       LEITURA-EXIT.
+           EXIT.
+      *----------------------------------------------------------------- 
+
+
+      *-----------------------------------------------------------------
+       CALCULO-IDADE                 SECTION.
+           MOVE CAD-ANO TO WS-ANO
+           MOVE CAD-MES TO WS-MES 
+           MOVE CAD-DIA TO WS-DIA 
+           MOVE WS-DATA-NASCIMENTO TO WS-INT-NASCIMENTO  
+           MOVE FUNCTION INTEGER-OF-DATE (WS-INT-NASCIMENTO) 
+                          TO WS-INT-NASCIMENTO          
+           COMPUTE WS-INT-IDADE = WS-INT-HOJE - WS-INT-NASCIMENTO.
+       CALCULO-IDADE-EXIT.
+           EXIT.
+      *-----------------------------------------------------------------
