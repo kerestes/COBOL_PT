@@ -19,8 +19,7 @@
        INPUT-OUTPUT                           SECTION.
       *-----------------------------------------------------------------
        FILE-CONTROL.
-           SELECT ESTOQUE ASSIGN 
-                    TO 'c:\pro\cobol\db\geracao_auto\exercicio_11.txt'
+           SELECT ESTOQUE ASSIGN TO 'exercicio_11.txt'
            ORGANIZATION IS LINE SEQUENTIAL.
            SELECT REPOSICAO ASSIGN TO 'reposicao.txt'
            ORGANIZATION IS LINE SEQUENTIAL.
