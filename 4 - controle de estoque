@@ -1,0 +1,190 @@
+ ******************************************************************
+      * Author: KERESTES
+      * Date: JUNE 23, 2022.
+      * Purpose: EXERCICE
+      * Tectonics: cobc
+      ******************************************************************
+      *
+      *    O PROGRAMA RECEBE UM ARQUIVO COM PRODUTOS E PRECOS
+      *    VERIFICA O NIVEL DO ESTOQUE, E PROPOEM UMA LISTA DE
+      *    REPOSICAO EM ORDEM ALFABETICA POR FORNECEDOR E COM VALORES.
+      *
+      ******************************************************************
+       IDENTIFICATION                                DIVISION.
+      ******************************************************************
+       PROGRAM-ID. GERENCIA-DE-ESTOQUE.
+      ******************************************************************
+       ENVIRONMENT                                   DIVISION. 
+      ******************************************************************
+       INPUT-OUTPUT                           SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL.
+           SELECT ESTOQUE ASSIGN 
+                    TO 'c:\pro\cobol\db\geracao_auto\exercicio_11.txt'
+           ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT REPOSICAO ASSIGN TO 'reposicao.txt'
+           ORGANIZATION IS LINE SEQUENTIAL.
+      ******************************************************************     
+       DATA                                          DIVISION.
+      ******************************************************************
+       FILE                                   SECTION.
+      *-----------------------------------------------------------------
+       FD ESTOQUE.
+       01  SK-INFORMACOES.
+           02 SK-CODE PIC 9(3).
+           02 FILLER PIC X.
+           02 SK-PRODUTO PIC X(25).
+           02 SK-QTD-PRODUTO PIC 9(3).
+           02 SK-FORNECEDOR PIC X(17).
+           02 SK-PRECO PIC 9(2)V99.
+       FD REPOSICAO.
+       01  RP-INFORMACOES.
+           02 RP-FORNECEDOR PIC X(17).
+           02 FILLER PIC X.
+           02 RP-CODE PIC 9(3).
+           02 FILLER PIC X.
+           02 RP-PRODUTO PIC X(25).
+           02 FILLER PIC X(6).
+           02 RP-QTD-PRODUTOTOT PIC 9(3).
+           02 FILLER PIC X(12).
+           02 RP-QTD-PRODUTOREP PIC 9(3).
+           02 FILLER PIC X(5).
+           02 RP-PRECOTOT PIC $$$9V99.
+      *-----------------------------------------------------------------     
+       WORKING-STORAGE                        SECTION.
+      *-----------------------------------------------------------------
+       01  WS-FLAG PIC X(1) VALUE 'N'.
+       01  WS-QTD-MIN PIC 9(3) VALUE 80.
+       01  WS-ARRAY OCCURS 40.
+           02 WS-FORNECEDOR PIC X(17).
+           02 FILLER PIC X.
+           02 WS-CODE PIC 9(3).
+           02 FILLER PIC X.
+           02 WS-PRODUTO PIC X(25).
+           02 FILLER PIC X(6).
+           02 WS-QTD-PRODUTOTOT PIC 9(3).
+           02 FILLER PIC X(12).
+           02 WS-QTD-PRODUTOREP PIC 9(3).
+           02 FILLER PIC X(5).
+           02 WS-PRECOTOT PIC $$$9.99.
+       01  WS-CONT PIC 9(2) VALUE 1.
+       01  WS-CONT2 PIC 9(2) VALUE 1.
+       01  WS-CONT3 PIC 9(2) VALUE 1.
+       01  WS-CONT4 PIC 9(2) VALUE 1.
+       01  CABECALHO1.
+           02 FILLER PIC X(25) VALUE SPACES.
+           02 FILLER PIC X(22) VALUE 'RELATORIO DE REPOSICAO'.
+       01  CABECALHO2.
+           02 FILLER PIC X(17) VALUE 'FORNECEDOR'.
+           02 FILLER PIC X(4) VALUE 'COD'.
+           02 FILLER PIC X(25) VALUE 'PRODUTO'.
+           02 FILLER PIC X(15) VALUE 'QTD EM ESTOQUE'.
+           02 FILLER PIC X(15) VALUE 'QTD DO PEDIDO'.
+           02 FILLER PIC X(5) VALUE 'PRECO'.
+       01  CABECALHO3.
+           02 FILLER PIC X(17) VALUE '------------'.
+           02 FILLER PIC X(4) VALUE '---'.
+           02 FILLER PIC X(25) VALUE '------------------'.
+           02 FILLER PIC X(15) VALUE '-------------'.
+           02 FILLER PIC X(15) VALUE '-------------'.
+           02 FILLER PIC X(5) VALUE '-----'.
+       01  WS-CALC-QTD PIC 9(3)V99.
+       01  WS-CALC-VALOR PIC 9(5)V99.
+       01  WS-RODAPE1.
+           02 WS-FRASE1 PIC X(46) VALUE   'O VALOR TOTAL PARA EFETUAR A 
+      -                         'REPOSICAO E DE : '.
+           02 WS-VALOR-FINAL PIC $$,$$9.99.
+      ******************************************************************
+       PROCEDURE                                   DIVISION.
+      ******************************************************************
+           OPEN INPUT ESTOQUE.
+           OPEN OUTPUT REPOSICAO.
+
+           WRITE RP-INFORMACOES FROM CABECALHO1.
+           MOVE SPACES TO RP-INFORMACOES
+           WRITE RP-INFORMACOES AFTER ADVANCING 1 LINE
+           WRITE RP-INFORMACOES FROM CABECALHO2.
+           WRITE RP-INFORMACOES FROM CABECALHO3.
+           MOVE SPACES TO RP-INFORMACOES
+           WRITE RP-INFORMACOES AFTER ADVANCING 1 LINE
+
+           PERFORM 0001-LEITURA.
+           PERFORM UNTIL WS-FLAG = 'Y'
+              PERFORM 0002-VERIFICA-ESTOQUE
+              PERFORM 0001-LEITURA
+           END-PERFORM.
+
+           PERFORM VARYING WS-CONT2 FROM 1 BY 1
+                    UNTIL WS-CONT2=WS-CONT
+              MOVE WS-ARRAY(WS-CONT2) TO RP-INFORMACOES
+              WRITE RP-INFORMACOES
+           END-PERFORM.
+
+           MOVE SPACES TO RP-INFORMACOES
+           WRITE RP-INFORMACOES AFTER ADVANCING 1 LINE
+
+           MOVE WS-CALC-VALOR TO WS-VALOR-FINAL
+
+           WRITE RP-INFORMACOES FROM WS-RODAPE1
+           
+           CLOSE ESTOQUE 
+           CLOSE REPOSICAO
+
+           STOP RUN.
+      *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       0001-LEITURA                        SECTION.
+      *-----------------------------------------------------------------
+           READ ESTOQUE
+                 AT END MOVE 'Y' TO WS-FLAG
+           END-READ.
+       0001-LEITURA-EXIT.
+           EXIT.
+      *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       
+      *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       0002-VERIFICA-ESTOQUE              SECTION.
+      *-----------------------------------------------------------------
+           IF SK-QTD-PRODUTO < WS-QTD-MIN THEN
+              PERFORM VARYING WS-CONT2 FROM 1 BY 1 UNTIL 
+                      SK-FORNECEDOR < WS-FORNECEDOR 
+                      OF WS-ARRAY(WS-CONT2) OR WS-CONT2 = WS-CONT
+              END-PERFORM
+
+              MOVE WS-CONT2 TO WS-CONT4
+
+              IF WS-CONT2 = WS-CONT
+                 PERFORM 0003-MOVENDO-WS
+              ELSE
+                 PERFORM VARYING WS-CONT3 FROM WS-CONT 
+                         BY -1 UNTIL WS-CONT3 = WS-CONT2 
+                         
+                      MOVE WS-ARRAY(WS-CONT3 - 1) TO 
+                      WS-ARRAY(WS-CONT3)
+
+                 END-PERFORM
+
+                 PERFORM 0003-MOVENDO-WS
+
+              END-IF
+              COMPUTE WS-CALC-VALOR  = WS-CALC-VALOR + 
+                       WS-CALC-QTD
+              COMPUTE WS-CONT = WS-CONT + 1
+           END-IF.
+       0002-VERIFICA-ESTOQUE-EXIT.
+           EXIT.
+      *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       0003-MOVENDO-WS                     SECTION.
+      *-----------------------------------------------------------------
+           MOVE SK-FORNECEDOR TO WS-FORNECEDOR(WS-CONT4)
+           MOVE SK-CODE TO WS-CODE(WS-CONT4) 
+           MOVE SK-PRODUTO TO WS-PRODUTO(WS-CONT4) 
+           MOVE SK-QTD-PRODUTO TO WS-QTD-PRODUTOTOT(WS-CONT4)
+           COMPUTE WS-QTD-PRODUTOREP(WS-CONT4) = 
+                   150 - WS-QTD-PRODUTOTOT(WS-CONT4)
+           COMPUTE WS-CALC-QTD = 
+                 SK-PRECO * WS-QTD-PRODUTOREP(WS-CONT4)
+           MOVE WS-CALC-QTD TO WS-PRECOTOT(WS-CONT4)
+           MOVE '0' TO WS-FORNECEDOR OF WS-ARRAY(WS-CONT + 1).
+      *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
