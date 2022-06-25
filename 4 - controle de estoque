@@ -34,8 +34,11 @@
            02 FILLER PIC X.
            02 SK-PRODUTO PIC X(25).
            02 SK-QTD-PRODUTO PIC 9(3).
+           02 FILLER PIC X.
            02 SK-FORNECEDOR PIC X(17).
-           02 SK-PRECO PIC 9(2)V99.
+           02 SK-PRECO1 PIC 9(2).
+           02 FILLER PIC X.
+           02 SK-PRECO2 PIC V99.
        FD REPOSICAO.
        01  RP-INFORMACOES.
            02 RP-FORNECEDOR PIC X(17).
@@ -48,7 +51,7 @@
            02 FILLER PIC X(12).
            02 RP-QTD-PRODUTOREP PIC 9(3).
            02 FILLER PIC X(5).
-           02 RP-PRECOTOT PIC $$$9V99.
+           02 RP-PRECOTOT PIC $,$$$,$$9V99.
       *-----------------------------------------------------------------     
        WORKING-STORAGE                        SECTION.
       *-----------------------------------------------------------------
@@ -65,7 +68,7 @@
            02 FILLER PIC X(12).
            02 WS-QTD-PRODUTOREP PIC 9(3).
            02 FILLER PIC X(5).
-           02 WS-PRECOTOT PIC $$$9.99.
+           02 WS-PRECOTOT PIC $$$,$$9.99.
        01  WS-CONT PIC 9(2) VALUE 1.
        01  WS-CONT2 PIC 9(2) VALUE 1.
        01  WS-CONT3 PIC 9(2) VALUE 1.
@@ -87,12 +90,13 @@
            02 FILLER PIC X(15) VALUE '-------------'.
            02 FILLER PIC X(15) VALUE '-------------'.
            02 FILLER PIC X(5) VALUE '-----'.
-       01  WS-CALC-QTD PIC 9(3)V99.
-       01  WS-CALC-VALOR PIC 9(5)V99.
+       01  WS-CALC-QTD PIC 9(5)V99.
+       01  WS-CALC-VALOR PIC 9(7)V99.
+       01  WS-CALC-PRECO PIC 9(2)V99.
        01  WS-RODAPE1.
            02 WS-FRASE1 PIC X(46) VALUE   'O VALOR TOTAL PARA EFETUAR A 
       -                         'REPOSICAO E DE : '.
-           02 WS-VALOR-FINAL PIC $$,$$9.99.
+           02 WS-VALOR-FINAL PIC $,$$$,$$9.99.
       ******************************************************************
        PROCEDURE                                   DIVISION.
       ******************************************************************
@@ -149,8 +153,6 @@
                       OF WS-ARRAY(WS-CONT2) OR WS-CONT2 = WS-CONT
               END-PERFORM
 
-              MOVE WS-CONT2 TO WS-CONT4
-
               IF WS-CONT2 = WS-CONT
                  PERFORM 0003-MOVENDO-WS
               ELSE
@@ -158,7 +160,7 @@
                          BY -1 UNTIL WS-CONT3 = WS-CONT2 
                          
                       MOVE WS-ARRAY(WS-CONT3 - 1) TO 
-                      WS-ARRAY(WS-CONT3)
+                             WS-ARRAY(WS-CONT3)
 
                  END-PERFORM
 
@@ -176,14 +178,15 @@
       *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        0003-MOVENDO-WS                     SECTION.
       *-----------------------------------------------------------------
-           MOVE SK-FORNECEDOR TO WS-FORNECEDOR(WS-CONT4)
-           MOVE SK-CODE TO WS-CODE(WS-CONT4) 
-           MOVE SK-PRODUTO TO WS-PRODUTO(WS-CONT4) 
-           MOVE SK-QTD-PRODUTO TO WS-QTD-PRODUTOTOT(WS-CONT4)
-           COMPUTE WS-QTD-PRODUTOREP(WS-CONT4) = 
-                   150 - WS-QTD-PRODUTOTOT(WS-CONT4)
+           MOVE SK-FORNECEDOR TO WS-FORNECEDOR(WS-CONT2)
+           MOVE SK-CODE TO WS-CODE(WS-CONT2) 
+           MOVE SK-PRODUTO TO WS-PRODUTO(WS-CONT2) 
+           MOVE SK-QTD-PRODUTO TO WS-QTD-PRODUTOTOT(WS-CONT2)
+           COMPUTE WS-QTD-PRODUTOREP(WS-CONT2) = 
+                   150 - WS-QTD-PRODUTOTOT(WS-CONT2)
+           COMPUTE WS-CALC-PRECO = SK-PRECO1 + SK-PRECO2 
            COMPUTE WS-CALC-QTD = 
-                 SK-PRECO * WS-QTD-PRODUTOREP(WS-CONT4)
-           MOVE WS-CALC-QTD TO WS-PRECOTOT(WS-CONT4)
+                 WS-CALC-PRECO * WS-QTD-PRODUTOREP(WS-CONT2)
+           MOVE WS-CALC-QTD TO WS-PRECOTOT(WS-CONT2)
            MOVE '0' TO WS-FORNECEDOR OF WS-ARRAY(WS-CONT + 1).
       *%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
