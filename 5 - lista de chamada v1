@@ -1,0 +1,447 @@
+
+      ******************************************************************
+      * Author: KERESTES
+      * Date: JUNE 26, 2022.
+      * Purpose: EXERCICE
+      * Tectonics: cobc
+      ******************************************************************
+       IDENTIFICATION                            DIVISION.
+      ******************************************************************
+       PROGRAM-ID. JSON_CONVERTION.
+      ******************************************************************
+       ENVIRONMENT                               DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT                       SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL.
+           SELECT REGISTROS ASSIGN TO 'registres2.json'
+           ORGANIZATION IS LINE SEQUENTIAL
+           FILE STATUS IS FS-REGISTRO.
+           SELECT CURSO1 ASSIGN TO 'cours1.dat'
+           ORGANIZATION IS LINE SEQUENTIAL
+           FILE STATUS IS FS-CURSO1.
+       DATA                                      DIVISION.
+      ******************************************************************
+       FILE                               SECTION.
+      *-----------------------------------------------------------------
+       FD  REGISTROS.
+       01  JSON-LINHA.
+           02 ENTRADA PIC X OCCURS 80.
+       FD  CURSO1.
+       01  JSON-LINHA2.
+           02 SAIDA PIC X(80).
+      * 01  COURS.
+      *     02 C1-CODE-PERSONNEL PIC 9(5).
+      *     02 FILLER PIC X(2).
+      *     02 C1-NOM PIC X(20).
+      *     02 C1-PRENOM PIC X(20).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE                    SECTION.
+      *-----------------------------------------------------------------
+       77  FS-REGISTRO PIC X(2).
+           88 REGISTRO-OK VALUE '00'.
+
+       77  FS-CURSO1 PIC X(2).
+           88 CURSO1-OK VALUE '00'.
+
+       77  WS-TRATAMENTO PIC X(2).
+           88 TRAITAMENTO-OK VALUE '00'.
+           88 FIN-TRAIT VALUE 'FF'.    
+
+       01  WS-EOF PIC X VALUE 'N'.
+       01  WS-EO-JSON-LINHA PIC X VALUE 'N'.
+
+
+       01  WS-CONT PIC 9(2) VALUE 1.
+       01  WS-CONT2 PIC 9(2) VALUE 1.
+       01  WS-CONT3 PIC 9(2) VALUE 1.
+       01  WS-CONT4 PIC 9(4) VALUE 1.
+       01  WS-CONT5 PIC 9(4) VALUE 1.
+       01  WS-CONT6 PIC 9(4) VALUE 1.
+
+       01  WS-STRINGT. 
+           02 WS-STRING-TESTE PIC X OCCURS 30.
+
+       01  WS-NUMEROT.
+           02 WS-NUMERO-TESTE PIC 9 OCCURS 20.
+
+      *     AS VARIAVEIS QUE FAZEM REFERENCIA AO ARQUIVO JSON
+      
+       01  CADASTRO. 
+           02 VERDADEIRO-CADASTRO OCCURS 200.
+              03 Code-Pessoal PIC 9(5).
+              03 Sobrenome PIC X(20).
+              03 Nome PIC X(20).
+              03 Email PIC X(40).
+              03 Telefone PIC X(14).
+              03 Data-de-nascimento PIC 9(8).
+              03 Curso PIC X(30).
+
+      *       FIM DAS VARIAVEIS JSON.
+
+       01  WS-CURSO1.
+           02 WS-CURSO2  OCCURS 200.
+              03 WS-CURSO PIC X(30).
+              03 WS-ALUNO OCCURS 20.
+                 04 WS-CODE-PESSOAL PIC 9(5).
+                 04 FILLER PIC X(2).
+                 04 WS-NOME-COMPLETO PIC X(40).
+
+       01  WS-CABECALHO-1.
+           02 FILLER PIC X(10).
+           02 FILLER PIC X(6) VALUE 'CURSO'.
+
+       01  WS-CABECALHO-2.
+           02 FILLER PIC X(6) VALUE 'CODIGO'.
+           02 FILLER PIC X(3).
+           02 FILLER PIC X(18) VALUE 'SOBRENOME ET NOME'.
+
+       01  WS-CABECALHO-3.
+           02 FILLER PIC X(7) VALUE '----'.
+           02 FILLER PIC X(2).
+           02 FILLER PIC X(30) VALUE ALL '-'.
+      ******************************************************************
+       PROCEDURE                                 DIVISION.
+      ******************************************************************
+          
+           PERFORM S0000-INICIAL.
+           PERFORM S1000-TRATA-JSON.
+           PERFORM S2000-TRATA-INTERNO.
+           PERFORM S3000-TRATA-SAIDA.
+
+           CLOSE REGISTROS.
+           CLOSE CURSO1.
+           
+
+           STOP RUN.
+
+      ******************************************************************
+       S0000-INICIAL                       SECTION.
+           OPEN INPUT REGISTROS.
+      
+           IF NOT REGISTRO-OK 
+              DISPLAY 'Erro na abertura do REGISTROS' FS-REGISTRO
+              MOVE 'FF' TO WS-TRATAMENTO 
+           END-IF
+
+           OPEN OUTPUT CURSO1.
+
+           IF NOT CURSO1-OK  
+              DISPLAY 'Erro na abertura do CURSO1' FS-CURSO1 
+              MOVE 'FF' TO WS-TRATAMENTO
+           END-IF.
+
+       S0000-INICIAL-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S1000-TRATA-JSON                   SECTION.
+                    
+           PERFORM UNTIL WS-EOF = 'Y'
+              READ REGISTROS
+              END-READ
+              IF JSON-LINHA = '***'
+                 MOVE 'Y' TO WS-EOF
+              ELSE
+                 PERFORM S1010-CONVERT
+              END-IF
+              MOVE 'N' TO WS-EO-JSON-LINHA
+           END-PERFORM.
+
+       S1000-TRATA-FIN.
+           EXIT.      
+      ******************************************************************     
+
+      ******************************************************************
+       S1010-CONVERT                    SECTION.
+           MOVE SPACE TO WS-STRINGT
+           MOVE ZERO TO WS-NUMEROT
+           PERFORM VARYING WS-CONT FROM 1 BY 1
+                 UNTIL WS-CONT = 80 OR WS-EO-JSON-LINHA = 'Y'
+              IF ENTRADA(WS-CONT)  = '"'
+                 ADD 1 TO WS-CONT
+                 MOVE 1 TO WS-CONT3
+                 PERFORM VARYING WS-CONT2 FROM WS-CONT BY 1 UNTIL 
+                          WS-CONT2 = WS-CONT + 3
+                    MOVE ENTRADA(WS-CONT2) TO WS-STRING-TESTE (WS-CONT3)
+                    ADD 1 TO WS-CONT3
+                 END-PERFORM
+                 
+                 EVALUATE WS-STRINGT
+                    WHEN  'Cod'
+                       MOVE 19 TO WS-CONT
+                       PERFORM S1020-FIELD-NUM
+                       MOVE WS-NUMEROT(17:4) TO
+                                 Code-Pessoal(WS-CONT4)
+                       MOVE ZEROS TO WS-NUMEROT
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                    WHEN 'Nom'
+                       MOVE 8 TO WS-CONT
+                       PERFORM S1020-FIELD 
+                       MOVE WS-STRINGT TO 
+                             Sobrenome (WS-CONT4)
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                    WHEN 'Pre'
+                       MOVE 11 TO WS-CONT
+                       PERFORM S1020-FIELD 
+                       MOVE WS-STRINGT TO 
+                             Nome (WS-CONT4)
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                    WHEN 'Ema'
+                       MOVE 10 TO WS-CONT
+                       PERFORM S1020-FIELD 
+                       MOVE WS-STRINGT TO 
+                             Email (WS-CONT4)
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                    WHEN 'Tel'
+                       MOVE 14 TO WS-CONT
+                       PERFORM S1020-FIELD
+                       MOVE WS-STRINGT TO 
+                             Telefone (WS-CONT4)
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                    WHEN 'Dat'
+                       MOVE 22 TO WS-CONT
+                       PERFORM S1020-FIELD
+                       PERFORM S1030-DATA
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                    WHEN 'Cou'
+                       MOVE 10 TO WS-CONT
+                       PERFORM S1020-FIELD 
+                       MOVE WS-STRINGT TO 
+                             Curso (WS-CONT4)
+                       ADD 1 TO WS-CONT4
+                       MOVE SPACES TO WS-STRINGT
+                       MOVE 'Y' TO WS-EO-JSON-LINHA
+                 END-EVALUATE
+
+           END-PERFORM.
+       
+       S1010-CONVERT-FIN.    
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S1020-FIELD                         SECTION.
+           MOVE SPACES TO WS-STRINGT 
+           MOVE 1 TO WS-CONT3
+           PERFORM VARYING WS-CONT FROM WS-CONT BY 1
+                    UNTIL ENTRADA(WS-CONT) = '"' 
+              MOVE ENTRADA(WS-CONT) TO WS-STRING-TESTE(WS-CONT3)
+              ADD 1 TO WS-CONT3
+           END-PERFORM.
+       S1020-FIELD-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S1020-FIELD-NUM                         SECTION.
+           MOVE SPACES TO WS-STRINGT 
+           PERFORM VARYING WS-CONT FROM WS-CONT BY 1
+                    UNTIL ENTRADA(WS-CONT) = '"'
+              MOVE ENTRADA(WS-CONT) TO WS-STRING-TESTE(WS-CONT3)
+              ADD 1 TO WS-CONT3
+           END-PERFORM
+       
+           MOVE 20 TO WS-CONT5
+           SUBTRACT 1 FROM WS-CONT3 
+           PERFORM WITH TEST AFTER VARYING WS-CONT3 FROM WS-CONT3
+                       BY -1 UNTIL WS-CONT3=1
+              MOVE WS-STRING-TESTE (WS-CONT3) 
+                       TO WS-NUMERO-TESTE(WS-CONT5)
+              SUBTRACT 1 FROM WS-CONT5 
+           END-PERFORM.
+          
+       S1020-FIELD-NUM-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S1030-DATA                         SECTION.
+     
+           MOVE 1 TO WS-CONT2
+           IF WS-STRING-TESTE (2)  = '/' AND
+                           WS-STRING-TESTE (5) = '/'
+                    MOVE 0 TO  WS-NUMERO-TESTE (1)
+                    MOVE 2 TO WS-CONT2
+                    PERFORM VARYING WS-CONT FROM 1 BY 1
+                                   UNTIL WS-CONT = 9
+                       IF WS-STRING-TESTE (WS-CONT) IS NUMERIC 
+                          MOVE WS-STRING-TESTE (WS-CONT) TO 
+                          WS-NUMERO-TESTE(WS-CONT2)
+                          ADD 1 TO WS-CONT2
+                         END-IF
+                    END-PERFORM
+                    MOVE WS-NUMEROT TO Data-de-nascimento(WS-CONT4)
+           ELSE IF WS-STRING-TESTE (3) = '/' AND 
+                          WS-STRING-TESTE (5) = '/'
+                    PERFORM VARYING WS-CONT FROM 1 BY 1
+                                   UNTIL WS-CONT = 9
+                       IF WS-CONT2 = 3
+                          MOVE 0 TO WS-NUMERO-TESTE(WS-CONT2)
+                          ADD 1 TO WS-CONT2
+                       ELSE IF WS-STRING-TESTE (WS-CONT) IS NUMERIC 
+                          MOVE WS-STRING-TESTE (WS-CONT) TO 
+                          WS-NUMERO-TESTE(WS-CONT2)
+                          ADD 1 TO WS-CONT2
+                       END-IF
+                    END-PERFORM
+                    MOVE WS-NUMEROT TO Data-de-nascimento (WS-CONT4)
+           ELSE IF WS-STRING-TESTE (2) = '/' AND
+                           WS-STRING-TESTE (4) = '/'
+                    MOVE 0 TO  WS-NUMERO-TESTE (1)
+                    MOVE 2 TO WS-CONT2
+                    PERFORM VARYING WS-CONT FROM 1 BY 1
+                                   UNTIL WS-CONT = 8
+                       IF WS-CONT2 = 3
+                          MOVE 0 TO WS-NUMERO-TESTE(WS-CONT2)
+                          ADD 1 TO WS-CONT2
+                       ELSE IF WS-STRING-TESTE (WS-CONT) IS NUMERIC 
+                          MOVE WS-STRING-TESTE (WS-CONT) TO 
+                          WS-NUMERO-TESTE(WS-CONT2)
+                          ADD 1 TO WS-CONT2
+                       END-IF
+                    END-PERFORM
+                    MOVE WS-NUMEROT TO Data-de-nascimento(WS-CONT4)
+           ELSE
+              PERFORM VARYING WS-CONT FROM 1 BY 1
+                                   UNTIL WS-CONT = 10
+                       IF WS-STRING-TESTE (WS-CONT) IS NUMERIC 
+                          MOVE WS-STRING-TESTE (WS-CONT) TO 
+                          WS-NUMERO-TESTE(WS-CONT2)
+                          ADD 1 TO WS-CONT2
+                       END-IF
+                END-PERFORM 
+                MOVE WS-NUMEROT TO Data-de-nascimento(WS-CONT4)
+           END-IF.
+
+       S1030-DATA-FIN.
+           EXIT.
+      ******************************************************************
+       
+      ******************************************************************
+       S2000-TRATA-INTERNO          SECTION.
+
+           MOVE 1 TO WS-CONT2, WS-CONT3
+           MOVE SPACE TO WS-CURSO1
+           PERFORM WITH TEST AFTER VARYING WS-CONT FROM 1 BY 1 
+                    UNTIL WS-CONT = WS-CONT4
+              IF WS-CONT = 1
+                 PERFORM S2010-INTERNO-MOVE-TUDO
+              ELSE
+
+                 PERFORM VARYING WS-CONT3 FROM 1 BY 1 
+                          UNTIL WS-CURSO(WS-CONT3) >= Curso (WS-CONT)
+                          OR WS-CURSO(WS-CONT3)=SPACE
+                 END-PERFORM
+
+                 MOVE WS-CONT TO WS-CONT5
+                 ADD 1 TO WS-CONT5
+                 MOVE WS-CONT3 TO WS-CONT6
+                 
+                 IF WS-CURSO(WS-CONT3) = Curso (WS-CONT)
+                    PERFORM VARYING WS-CONT3 FROM WS-CONT3 BY 1
+                          UNTIL WS-CURSO(WS-CONT3) NOT =
+                             WS-CURSO(WS-CONT6)
+                    END-PERFORM
+                    SUBTRACT 1 FROM WS-CONT3
+                    PERFORM VARYING WS-CONT2 FROM 1 BY 1
+                           UNTIL WS-ALUNO(WS-CONT3, WS-CONT2) = SPACE 
+                            OR WS-CONT2 > 20
+                    END-PERFORM
+                    IF WS-CONT > 20
+                       PERFORM WITH TEST AFTER VARYING WS-CONT2 
+                             FROM WS-CONT BY -1 
+                             UNTIL WS-CONT2 = WS-CONT3 
+                          MOVE WS-CURSO2(WS-CONT2) 
+                               TO WS-CURSO2(WS-CONT5)
+                          SUBTRACT 1 FROM WS-CONT5
+                       END-PERFORM
+                       MOVE 1 TO WS-CONT2
+                       PERFORM S2010-INTERNO-MOVE-TUDO
+                    ELSE 
+                       PERFORM S2020-INTERNO-MOVE
+                    END-IF
+                 ELSE
+                    IF WS-CONT3 NOT = WS-CONT
+                       PERFORM WITH TEST AFTER VARYING WS-CONT2 
+                               FROM WS-CONT BY -1  
+                               UNTIL WS-CONT2=WS-CONT3 
+                          MOVE WS-CURSO2(WS-CONT2) 
+                               TO WS-CURSO2(WS-CONT5)
+                          SUBTRACT 1 FROM WS-CONT5
+                       END-PERFORM
+                    END-IF
+                 
+                 MOVE 1 TO WS-CONT2
+                 PERFORM S2010-INTERNO-MOVE-TUDO 
+
+                END-IF        
+            END-IF 
+
+           END-PERFORM.
+
+       S2000-TRATA-INTERNO-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S2010-INTERNO-MOVE-TUDO           SECTION.
+           
+           MOVE Curso(WS-CONT) to WS-CURSO(WS-CONT3)
+           STRING Nome  (WS-CONT) DELIMITED BY SPACE 
+                  ' ' DELIMITED BY SIZE 
+                  Sobrenome (WS-CONT) DELIMITED BY SPACE 
+                  INTO WS-NOME-COMPLETO(WS-CONT3, WS-CONT2)
+           MOVE Code-Pessoal (WS-CONT) 
+                    TO WS-CODE-PESSOAL (WS-CONT3, WS-CONT2).
+
+       S2010-INTERNO-MOVE-TUDO-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S2020-INTERNO-MOVE          SECTION.
+           
+           STRING Nome  (WS-CONT) DELIMITED BY SPACE 
+                  ' ' DELIMITED BY SIZE 
+                  Sobrenome  (WS-CONT) DELIMITED BY SPACE 
+                  INTO WS-NOME-COMPLETO (WS-CONT3, WS-CONT2)
+           MOVE Code-Pessoal (WS-CONT) 
+                    TO WS-CODE-PESSOAL (WS-CONT3, WS-CONT2).
+
+       S2020-INTERNO-MOVE-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       S3000-TRATA-SAIDA            SECTION.
+           PERFORM VARYING WS-CONT FROM 1 BY 1 
+                    UNTIL WS-CURSO2(WS-CONT) = SPACE 
+               WRITE JSON-LINHA2 FROM WS-CABECALHO-1 
+               STRING "       " DELIMITED BY SIZE 
+                      WS-CURSO(WS-CONT) DELIMITED BY SPACE 
+                      INTO JSON-LINHA2
+               WRITE JSON-LINHA2 
+               MOVE SPACE TO JSON-LINHA2
+               WRITE JSON-LINHA2 AFTER ADVANCING 1 LINE 
+               WRITE JSON-LINHA2 FROM WS-CABECALHO-2 
+               WRITE JSON-LINHA2 FROM WS-CABECALHO-3 
+               MOVE SPACE TO JSON-LINHA2
+               WRITE JSON-LINHA2 AFTER ADVANCING 1 LINE 
+               PERFORM WITH TEST AFTER VARYING WS-CONT2 FROM 1 BY 1 
+                          UNTIL WS-ALUNO(WS-CONT, WS-CONT2) = SPACE 
+                 WRITE JSON-LINHA2 FROM WS-ALUNO(WS-CONT, WS-CONT2)
+               END-PERFORM
+               MOVE SPACE TO JSON-LINHA2
+               WRITE JSON-LINHA2 AFTER ADVANCING 3 LINE
+           END-PERFORM.
+       S3000-TRATA-SAIDA-FIM.
+           EXIT.
+      ******************************************************************
