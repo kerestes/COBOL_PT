@@ -1,0 +1,422 @@
+        IDENTIFICATION                                DIVISION.
+      ******************************************************************
+       PROGRAM-ID. CSV-CAD.
+      ******************************************************************
+       ENVIRONMENT                                   DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT                 SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL. 
+           SELECT CADASTRO ASSIGN TO 'cadastro.csv'
+                 ORGANIZATION IS LINE SEQUENTIAL
+                 FILE STATUS IS FS-CADASTRO.
+           SELECT OPTIONAL CAD-CURSO ASSIGN TO 'cad-curso2.dat'
+                 ORGANIZATION IS INDEXED
+                 ACCESS MODE IS DYNAMIC
+                 RECORD KEY IS ID-CURSO
+                 ALTERNATE RECORD KEY IS MATRICULA
+                 FILE STATUS IS FS-CAD-CURSO.
+      ******************************************************************
+       DATA                                          DIVISION.
+      ******************************************************************
+       FILE                         SECTION.
+      *-----------------------------------------------------------------
+       FD  CADASTRO.
+       01  REGISTRO.
+           88 EOF VALUE HIGH-VALUES.
+           02 LINHA-REGISTRO  PIC X(160).
+
+       FD  CAD-CURSO.
+       01  LINHA-GRAVACAO.
+           02 EOF-LINHA PIC X.
+           02 ID-CURSO PIC 9(5).
+           02 NOME-CURSO PIC X(30).
+           02 ALUNO OCCURS 20 INDEXED BY I-ALUNO.
+              03 NUMERO-ALUNO PIC 99.
+              03 NOME-COMPLETO PIC X(40).
+              03 MATRICULA PIC 9(5).              
+      *-----------------------------------------------------------------
+       WORKING-STORAGE              SECTION.
+      *-----------------------------------------------------------------
+       01  FS-CADASTRO PIC 99.
+           88 FS-CADASTRO-OK VALUE '00'.
+
+       01  FS-CAD-CURSO PIC 99.
+           88 FS-CAD-CURSO-OK VALUE '00'.
+      *    A CRIAÇAO DE UM ARQUIVO INDEXED RETORNA CODICO CC=05.
+           88 FS-CAD-CURSO-CRIAR VALUE '05'.
+
+       77  WS-NOVA-TURMA PIC X VALUE 'N'.
+       77  WS-TESTE PIC X.
+       77  WS-FLAG PIC X VALUE 'N'.
+
+       77  WS-CONTADOR1 PIC 9(3).
+       77  WS-CONTADOR2 PIC 9(3).
+       77  WS-CONTADOR3 PIC 9(3).
+       77  WS-CONTADOR-ID PIC 9(5) VALUE 10000.
+
+       01  WS-CADASTRO.
+           02 WS-ID PIC 9(5).
+           02 WS-NOME PIC X(20).
+           02 WS-SOBRENOME PIC X(20).
+           02 WS-TELEFONE PIC X(15).
+           02 WS-EMAIL PIC X(35).
+           02 WS-ENDERECO PIC X(30).
+           02 WS-SEXO PIC X(1).
+           02 WS-CURSO-CAD PIC X(30).
+
+       01  WS-LISTA-CURSOS.
+           02 WS-CURSO-LISTA OCCURS 1000 INDEXED BY I-CURSO.
+              03 WS-ID-CURSO PIC 9(5).
+              03 WS-CURSO PIC X(30) VALUE SPACES.
+      ******************************************************************
+       PROCEDURE                                     DIVISION.
+      ******************************************************************
+           
+           PERFORM 0100-INICIAR-ARQUIVOS1.
+
+           PERFORM 0200-CRIANDO-LISTA.
+           
+           PERFORM 0300-CRIAR-ID-CURSO.
+
+           CLOSE CADASTRO
+
+           PERFORM 0100-INICIAR-ARQUIVOS1.        
+           PERFORM 0101-INICIAR-ARQUIVOS2.
+
+           PERFORM 0400-PRODUZINDO-SAIDA.
+     
+           CLOSE CADASTRO 
+           CLOSE CAD-CURSO
+
+           GOBACK.
+      ******************************************************************
+       0100-INICIAR-ARQUIVOS1        SECTION.
+              
+           OPEN INPUT CADASTRO
+
+           IF NOT FS-CADASTRO-OK
+              DISPLAY 'FALHA NA ABERTURA DO ARQUIVO DE ENTRADA'
+              GOBACK 
+           END-IF.
+
+       0100-INICIAR-ARQUIVOS-FIM.
+           EXIT.
+      ******************************************************************
+      
+      ******************************************************************
+       
+       0101-INICIAR-ARQUIVOS2        SECTION.
+       
+           OPEN I-O CAD-CURSO 
+
+           IF NOT FS-CAD-CURSO-OK
+              IF FS-CAD-CURSO-CRIAR 
+                 DISPLAY 'CRIACAO DE ARQUIVO COM SUCESSO'
+              ELSE 
+                 DISPLAY 'FALHA NA ABERTURA DO ARQUIVO DE SAIDA'
+                 DISPLAY 'NAO HAVERA GRAVACAO DE SAIDA'
+              END-IF
+           END-IF.
+
+       0101-INICIAR-ARQUIVOS2-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0200-CRIANDO-LISTA           SECTION.
+           
+      *    O ARQUIVO CADASTRO E LINE SEQUENTIAL
+      *    EXISTE UM CABEÇALHO NO ARQUIVO CSV. OS RECORDS QUE NOS
+      *    INTERESSAM COMECAM COM O CODIGO DE MATRICULA DO ALUNO
+      *    PORTANTO SAO NUMERICOS, POR ISSO DESSA LINHA
+
+           PERFORM UNTIL LINHA-REGISTRO (1:1) IS NUMERIC
+              READ CADASTRO
+                 AT END SET EOF TO TRUE 
+              END-READ
+           END-PERFORM
+           
+           PERFORM UNTIL EOF
+
+              PERFORM 0201-LEITURA-BUFFER
+              PERFORM 0202-LISTA-CURSOS
+              
+              READ CADASTRO
+                 AT END SET EOF TO TRUE 
+              END-READ
+           END-PERFORM.
+
+       0200-CRIANDO-LISTA-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0201-LEITURA-BUFFER          SECTION.      
+
+      *  AQUI A LEITURA SE DA SEQUENCIALMENTE, COMO NO ARQUIVO DE ORIGEM
+      *  AS COLUNAS SAO SEPARADAS POR VIRGULA O MARCADOR QUE FAZ O 
+      *  PROGRAMA PASSAR PARA O PROXIMO CAMPO É A VIRGULA.
+
+           MOVE 1 TO WS-CONTADOR1 
+           MOVE 1 TO WS-CONTADOR2  
+           MOVE SPACES TO WS-CADASTRO  
+
+           PERFORM UNTIL LINHA-REGISTRO (WS-CONTADOR1: 5) = SPACES
+              MOVE 1 TO WS-CONTADOR3
+              PERFORM VARYING WS-CONTADOR1 FROM WS-CONTADOR1 BY 1
+                       UNTIL LINHA-REGISTRO (WS-CONTADOR1: 1) = ',' OR 
+                       LINHA-REGISTRO (WS-CONTADOR1: 5) = SPACES
+                 EVALUATE WS-CONTADOR2 
+                    WHEN 1
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-ID (WS-CONTADOR3: 1)
+                    WHEN 2
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-NOME (WS-CONTADOR3: 1)
+                    WHEN 3
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-SOBRENOME (WS-CONTADOR3: 1)
+                    WHEN 4
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-TELEFONE (WS-CONTADOR3: 1)
+                    WHEN 5
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-EMAIL (WS-CONTADOR3: 1)
+                    WHEN 6
+      *
+      *   O ENDEREÇO E UM CASO ESPECIAL PORQUE ELE POSSUI VIRGULA COMO
+      *   PARTE DE SUA ESTRUTURA, ASSIM NO ARQUIVO CSV A VIRGULA APARECE
+      *   ENTRE PARENTESES PARA INDICAR QUE ELA PERTECEM AO CAMPO E NAO
+      *   INDICA MUDANCA DE CAMPO, POR ISSO FOI NECESSARIO FAZER UMA
+      *   MUDANCA NA LOGICA DE PROCESSAMENTO NESTE CAMPO
+
+                       ADD 1 TO WS-CONTADOR1
+                       PERFORM VARYING WS-CONTADOR1 
+                       FROM WS-CONTADOR1 BY 1
+                       UNTIL LINHA-REGISTRO (WS-CONTADOR1: 1) = '"' 
+                             MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                             WS-ENDERECO (WS-CONTADOR3: 1)
+                             ADD 1 TO WS-CONTADOR3
+                       END-PERFORM
+                    WHEN 7
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-SEXO (WS-CONTADOR3: 1)
+                    WHEN 8
+                       MOVE LINHA-REGISTRO (WS-CONTADOR1: 1) TO
+                            WS-CURSO-CAD (WS-CONTADOR3: 1)
+                 END-EVALUATE
+                 ADD 1 TO WS-CONTADOR3
+              END-PERFORM
+              ADD 1 TO WS-CONTADOR1
+              ADD 1 TO WS-CONTADOR2   
+           END-PERFORM.
+
+       0201-LEITURA-BUFFER-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0202-LISTA-CURSOS            SECTION.
+
+      *    ESTA SEÇAO SO EXISTE PARA ORGANIZAR OS CURSOS EM ORDEM 
+      *    ALFABETICA. SE NAO FOR NECESSARIO ESSA ORGANIZACAO ESSA 
+      *    SECTION SERIA DESNECESSARIA
+
+      *    PARA EVITAR A CRIACAO DE UM VETOR QUE COMPORTASSE TODOS OS
+      *    CURSOS ORGANIZADOS EM ORDEM ALFABETICA ASSIM COMO OS ALUNOS
+      *    OQ PODERIA SER BASTANTE HONEROSO A DEPENDER DO TAMANHO DO 
+      *    ARQUIVO LIDO PREFERI CRIAR UM VETOR SO COM OS NOMES DOS 
+      *    CURSOS QUE SERVE DE MARCADOR PARA QUE A ORGANIZAÇAO SEJA 
+      *    FEITA DIRETO NO PROPRIO ARQUIVO.
+
+      *    ENTAO AO INVEZ DE TER 10 MIL REGISTROS GRAVADOS, ESSA SECAO
+      *    CRIA UM VETOR COM O NOME DOS CURSOS, VAMOS SUPOR 50, QUE 
+      *    ORGANIZARA OS 10 MIL ALUNOS DIRETAMENTO NO ARQUIVO DE SAIDA.
+
+           IF WS-LISTA-CURSOS (1:1) = SPACE
+              MOVE WS-CURSO-CAD TO WS-CURSO (1)
+              SET I-CURSO TO 2
+           ELSE
+              PERFORM VARYING WS-CONTADOR1 FROM 1 BY 1 UNTIL 
+                          WS-CONTADOR1 = I-CURSO OR 
+                          WS-CURSO-CAD <= WS-CURSO (WS-CONTADOR1)
+              END-PERFORM
+              IF WS-CONTADOR1 = I-CURSO
+                 MOVE WS-CURSO-CAD TO WS-CURSO (I-CURSO)
+                 SET I-CURSO UP BY 1                 
+              ELSE IF WS-CURSO-CAD NOT = WS-CURSO (WS-CONTADOR1)
+                 PERFORM VARYING WS-CONTADOR2 FROM I-CURSO BY -1
+                          UNTIL WS-CONTADOR2 = WS-CONTADOR1
+                    COMPUTE WS-CONTADOR3 = WS-CONTADOR2 - 1
+                    MOVE WS-CURSO-LISTA (WS-CONTADOR3) 
+                             TO WS-CURSO-LISTA (WS-CONTADOR2)
+                 END-PERFORM
+                 MOVE WS-CURSO-CAD TO WS-CURSO (WS-CONTADOR1)
+                 SET I-CURSO UP BY 1
+              END-IF 
+           END-IF.
+
+       0202-LISTA-CURSOS-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0300-CRIAR-ID-CURSO          SECTION.
+
+      *    A LOGICA DO ID DO CURSO: 10 MIL É O NUMERO BASE, AS CENTENAS 
+      *    EH O NUMERO DO CURSO E AS DEZENAS O NUMERO DA TURMA.
+
+      *    ENTAO UMA ESCOLA COM 100 CURSOS TERA O PRIMEIRO CURSO COMO
+      *    10100 E O ULTIMO COMO 20000. SENDO QUE O PRIMEIRO CURSO TEM 
+      *    POR EXEMPLLO 20 TURMAS ENTAO A ULTIMA TURMA TERA NUMERO 10120
+      *    ASSIM PODEREMOS TER 999 CURSOS E 99 TURMAS POR CURSO.
+
+           PERFORM VARYING ID-CURSO  FROM 1 BY 1 UNTIL  
+                            WS-CURSO (ID-CURSO) = SPACES
+              ADD 100 TO WS-CONTADOR-ID
+              MOVE WS-CONTADOR-ID TO WS-ID-CURSO (ID-CURSO)              
+           END-PERFORM.
+
+       0300-CRIAR-ID-CURSO-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0400-PRODUZINDO-SAIDA        SECTION.
+
+      *    COMO NAO É POSSIVEL UTILIZAR A FUNCAO START EM ARQUIVOS 
+      *    SEQUENTTIAL O ARQUIVO É FECHADO E ABERTO UMA SEGUNDA VEZ.
+
+           PERFORM UNTIL LINHA-REGISTRO (1:1) IS NUMERIC
+              READ CADASTRO
+                 AT END SET EOF TO TRUE 
+              END-READ
+           END-PERFORM
+
+           PERFORM UNTIL EOF
+              
+              MOVE SPACES TO LINHA-GRAVACAO 
+              PERFORM 0201-LEITURA-BUFFER
+              PERFORM VARYING I-CURSO FROM 1 BY 1
+                       UNTIL WS-CURSO (I-CURSO)= WS-CURSO-CAD
+              END-PERFORM
+              MOVE WS-ID-CURSO (I-CURSO) TO ID-CURSO
+      
+      *   LOCALIZA-SE O CURSO QUE FOI LIDO DO ARQUIVO CSV. E VERIFICA-SE
+      *   SE O MESMO EXISTE (NOT INVALID KEY) OU SE NAO EXISTE.
+      *   SE NAO EXISTE A PRIMEIRA TURMA EH CRIADA COM CODIGO XXX00
+      *   SE EXISTIR O PROGRAMA VERIFICA SE TEM ESPACO (20 ALUNOS POR 
+      *   SALA) CASO NAO TENHA O PROGRAMA VERIFICA SE EXISTEM OUTRAS
+      *   TURMAS E VERIFICA SE NA ULTIMA TURMA TEM ESPACO, SE NAO TIVER 
+      *   CRIA MAIS UMA TURMA, SE AINDA TIVER ESPAÇO INSERE O ALUNO  
+
+              READ CAD-CURSO 
+                 KEY IS ID-CURSO
+                 INVALID KEY PERFORM 0402-INSERIR-CURSO
+                 NOT INVALID KEY PERFORM 0403-VERI-TURMA-RECURSIVA
+              END-READ
+
+              READ CADASTRO
+                 AT END SET EOF TO TRUE 
+              END-READ
+           END-PERFORM.
+
+       0400-PRODUZINDO-SAIDA-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0402-INSERIR-CURSO           SECTION.
+
+           MOVE WS-CURSO-CAD TO NOME-CURSO
+
+      *    EOF-LINHA MARCADOR PARA QUANDO O ARQUIVO ATINGE 20 ALUNOS
+           
+           MOVE 'N' TO EOF-LINHA
+           MOVE WS-ID TO MATRICULA (1)
+           MOVE 1 TO NUMERO-ALUNO (1)
+      
+      *    A VARIAVEL WS-TESTE E IMPORTANTE PARA A CRIACAO DE NOVAS 
+      *    TURMAS ELA TEM VALOR I - INICIAL E F - FINAL
+      
+           MOVE 'I' TO WS-TESTE
+           STRING WS-NOME DELIMITED BY SPACE 
+                  ' ' DELIMITED BY SIZE 
+                  WS-SOBRENOME DELIMITED BY SPACE
+                  INTO NOME-COMPLETO (1)
+           WRITE LINHA-GRAVACAO
+              INVALID KEY DISPLAY 'CHAVE INVALIDA WRITE'
+           END-WRITE.
+       0402-INSERIR-CURSO-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       0403-VERI-TURMA-RECURSIVA     SECTION.
+
+           IF EOF-LINHA = 'Y'
+              PERFORM WITH TEST AFTER VARYING ID-CURSO
+                       FROM ID-CURSO BY 1 UNTIL EOF-LINHA = 'N' 
+                         OR WS-TESTE = 'I'
+      *
+      *    EH AQUI QUE ELA E IMPORTANTO, A FUNCAO PERFORM VAI RODAR ATE 
+      *    ACHAR UM CURSO QUE TENHA VAGA (EOF-LINHA = 'N') OU VAI DAR 
+      *    INVALID KEY NA LEITURA DO PROXIMO ARQUIVO. NESSE CASO ELE 
+      *    ELE CRIA A TURMA E SETA A VARIAVEL COMO I 
+      * 
+                 READ CAD-CURSO 
+                    KEY IS ID-CURSO
+                    INVALID KEY MOVE 'Y' TO WS-NOVA-TURMA
+                 END-READ
+                 IF WS-NOVA-TURMA = 'Y'
+                    MOVE SPACES TO LINHA-GRAVACAO (7:970)
+                    PERFORM 0402-INSERIR-CURSO 
+                       MOVE 'N' TO WS-NOVA-TURMA
+                 END-IF
+      
+      *    TODOS OS REGISTROS EXCETO OS NOVOS SETAM A VARIAVEL WS-TEST 
+      *    COMO 'F', LOGO SE ELA ESTA COMO I QUER DIZER QUE UMA NOVA 
+      *    TURMA ACABOU DE SER INSERIDA, LOGO NAO É PRECISO INSERIR UM 
+      *    NOVO ALUNO. CASO ELA ESTEJA COMO 'N' SIGNIFICA QUE UMA NOVA
+      *    TURMA NAO FOI ABERTA, LOGO A LEITURA ESTA EM UM REGISTRO 
+      *    EXISTENTE E BASTA INSERIR O ALUNO
+
+              END-PERFORM
+              IF WS-TESTE = 'N'
+                 PERFORM 0404-INSERIR-ALUNO  
+              END-IF
+              MOVE 'N' TO WS-TESTE        
+           ELSE
+              PERFORM 0404-INSERIR-ALUNO         
+           END-IF.
+
+       0403-VER-TURMA-RECURSIVA-FIM.
+           EXIT. 
+      ******************************************************************
+
+      ******************************************************************
+       0404-INSERIR-ALUNO           SECTION.
+           
+           PERFORM VARYING I-ALUNO FROM 1 BY 1 
+                   UNTIL NUMERO-ALUNO (I-ALUNO ) NOT = I-ALUNO OR 
+                   I-ALUNO = 20
+           END-PERFORM
+
+           IF I-ALUNO = 20
+              MOVE 'Y' TO EOF-LINHA
+           END-IF
+
+           MOVE I-ALUNO TO NUMERO-ALUNO (I-ALUNO)
+           MOVE WS-ID TO MATRICULA (I-ALUNO)
+           STRING WS-NOME DELIMITED BY SPACE 
+                  ' ' DELIMITED BY SIZE 
+                  WS-SOBRENOME DELIMITED BY SPACE
+                  INTO NOME-COMPLETO (I-ALUNO)
+           REWRITE LINHA-GRAVACAO
+              INVALID KEY DISPLAY 'CHAVE INVALIDA REWRITE'
+           END-REWRITE.
+
+       0404-INSERIR-ALUNO-FIN.
+           EXIT.
+      ******************************************************************
