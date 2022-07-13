@@ -1,0 +1,546 @@
+       IDENTIFICATION                              DIVISION. 
+      ******************************************************************
+       PROGRAM-ID. CRIAR-CHAMADA.
+      ******************************************************************
+       ENVIRONMENT                                 DIVISION. 
+      ******************************************************************
+       INPUT-OUTPUT                      SECTION. 
+      *-----------------------------------------------------------------
+       FILE-CONTROL.
+
+           SELECT OPTIONAL CAD-CURSO ASSIGN TO "cad-curso2.dat"
+           ORGANIZATION IS INDEXED
+           ACCESS MODE IS DYNAMIC
+           RECORD KEY IS CAD-ID-CURSO
+           ALTERNATE RECORD KEY IS CAD-MATRICULA
+           FILE STATUS IS FS-CAD-CURSO.
+
+           SELECT OPTIONAL LISTA-CHAMADA ASSIGN TO "lista-chamada.dat"
+           ORGANIZATION IS INDEXED
+           ACCESS MODE IS DYNAMIC
+           RECORD KEY IS LISTA-ID-CURSO
+           ALTERNATE RECORD KEY IS LISTA-MATRICULA
+           FILE STATUS IS FS-LISTA-CHAMADA.
+
+           SELECT PRINT-CHAMADA ASSIGN TO "print-file.txt"
+           ORGANIZATION IS LINE SEQUENTIAL
+           FILE STATUS IS FS-PRINT-CHAMADA.
+      
+      ******************************************************************
+       DATA                                        DIVISION.
+      ******************************************************************
+       FILE                              SECTION.
+      *-----------------------------------------------------------------
+      
+       FD  CAD-CURSO.
+       01  CAD.
+           02 CAD-EOF-LINHA PIC X.
+           02 CAD-ID-CURSO PIC 9(5).
+           02 CAD-NOME-CURSO PIC X(30).
+           02 CAD-ALUNO OCCURS 20 INDEXED BY FD-CAD.
+              03 CAD-NUMERO-ALUNO PIC 99.
+              03 CAD-NOME-COMPLETO PIC X(40).
+              03 CAD-MATRICULA PIC 9(5).
+       
+       FD  LISTA-CHAMADA.
+       01  LISTA.
+           88 LISTA-EOF VALUE HIGH-VALUES.
+           02 LISTA-ID-CURSO PIC 9(5).
+           02 LISTA-NOME-CURSO PIC X(30).
+           02 LISTA-ALUNO OCCURS 20 INDEXED BY FD-LISTA.
+              03 LISTA-NUMERO-ALUNO PIC 99.
+              03 LISTA-NOME-COMPLETO PIC X(40).
+              03 LISTA-MATRICULA PIC 9(5).
+
+       FD  PRINT-CHAMADA.
+       01  LINHA-GRAVACAO PIC X(90).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE                   SECTION.
+      *-----------------------------------------------------------------
+
+      *    VARIAVEIS DE CONTROLE DE ERROS
+       
+       01  FS-CAD-CURSO PIC 99.
+           88  FS-CAD-CURSO-OK VALUE '00'.
+       
+       01  FS-LISTA-CHAMADA PIC 99.
+           88 FS-LISTA-CHAMADA-OK VALUE '00'.
+           88 FS-LISTA-CHAMADA-CRIAR VALUE '05'.
+
+       01  FS-PRINT-CHAMADA PIC 99.
+           88 FS-PRINT-CHAMADA-OK VALUE '00'.
+
+      *    VARIAVEIS DE ORGANIZACAO DA LISTA DE CHAMADA
+
+       01  WS-LISTA.
+           02 WS-EOF-LINHA PIC X.
+           02 WS-ID-CURSO PIC 9(5).
+           02 WS-NOME-CURSO PIC X(30) VALUE SPACES.
+           02 WS-ALUNO OCCURS 20 INDEXED BY I-ALUNO-WS.
+              03 WS-NUMERO-ALUNO PIC 99.
+              03 WS-NOME-COMPLETO PIC X(40) VALUE SPACES.
+              03 WS-MATRICULA PIC 9(5).
+
+       01  VETOR-GRAVACAO OCCURS 21 INDEXED BY IDX-VET.
+           02 VETOR-NUMERO-ALUNO PIC 99.
+           02 VETOR-NOME-COMPLETO PIC X(40).
+           02 VETOR-MATRICULA PIC 9(5).
+
+       77  WS-EOF PIC X VALUE 'N'.
+       77  WS-CONTROL-CURSO PIC 9(5).
+       77  WS-BALANCEAMENTO PIC 9(4).
+
+       77  WS-CONTADOR1 PIC 99.
+       77  WS-CONTADOR2 PIC 99.
+       77  WS-CONTADOR3 PIC 99.
+       77  WS-CONTADOR4 PIC 99.
+       77  WS-CONTADOR5 PIC 99.
+       77  WS-CONTADOR6 PIC 99.
+       77  WS-CONTADOR7 PIC 99.
+
+
+      *    VARIAVEIS DE GRAVACAO E CONTROLE DE PAGINA
+       01  PRINT-CONTROL.
+           02 WS-PRINT-PAGINAS.
+              03 FILLER PIC X(35) VALUE SPACES.
+              03 WS-CONT-PAG PIC 9(4) VALUE 1.
+       
+       01  PRINT-CABECALHO-1.
+           02 FILLER PIC X(28) VALUE SPACES.
+           02 FILLER PIC X(20) VALUE 'SORBONNE UNIVERSITE'.
+
+       01  PRINT-CABECALHO-2.
+           02 FILLER PIC X(16) VALUE SPACES.
+           02 WS-CAB-ID-CURSO PIC X(5).
+           02 FILLER PIC X(30) VALUE SPACES.
+           02 WS-CAB-CURSO PIC X(20).
+
+       01  PRINT-CABECALHO-3.
+           02 FILLER PIC X(5) VALUE SPACES.
+           02 FILLER PIC X(10) VALUE 'NUMERO'.
+           02 FILLER PIC X(10) VALUE SPACES.
+           02 FILLER PIC X(40) VALUE 'NOME COMPLETO'.
+           02 FILLER PIC x(10) VALUE 'MATRICULA'.
+
+       01  PRINT-CABECALHO-4.
+           02 FILLER PIC X(5) VALUE SPACES.
+           02 FILLER PIC X(10) VALUE '----------'.
+           02 FILLER PIC X(10) VALUE SPACES.
+           02 FILLER PIC X(40) VALUE '---------------------'.
+           02 FILLER PIC x(10) VALUE '----------'.
+
+       01  PRINT-INFO-ALUNOS.
+           02 FILLER PIC X(5) VALUE SPACES.
+           02 PRINT-NUMERO PIC 9(5).
+           02 FILLER PIC X(15) VALUE SPACES.
+           02 PRINT-NOME-COMP PIC X(40).
+           02 PRINT-MATRICULA PIC x(10).
+      ******************************************************************
+       PROCEDURE                                   DIVISION.
+      ******************************************************************
+           
+      *    ESTE PROGRAMA PEGA O ARQUIVO DAS TURMAS GERADOS PELO PROGRAMA 
+      *    ANTERIOR E O ORDENA. SE UMA DETERMINADA MATERIA TINHA 61
+      *    INSCRITOS E AS TURMAS TEM NO MAXIMO 20 ALUNO O PROGRAMA 
+      *    ANTERIOR GEROU UMA 3 TURMAS COM 20 E UMA TURMA COM 1 E OS 
+      *    ALUNOS NAO ESTAO EM ORDEM ALFABETICA. ESSE PROGRAMA BALANCEIA
+      *    AS TURMA E ORDENA OS ALUNOS EM ORDEM ALFABETICA E DEPOIS GERA
+      *    UM ARQUIVO DE IMPRESSAO 
+
+           PERFORM 01000-INICIAR-ARQUIVOS1
+           PERFORM 01010-INICIAR-ARQUIVOS2
+
+           PERFORM 02000-GRAVACAO-SAIDA1
+
+           CLOSE CAD-CURSO
+
+           PERFORM 01020-INICIAR-ARQUIVOS3
+
+           PERFORM 03000-REALTORIO-IMPRESSAO
+
+           CLOSE LISTA-CHAMADA 
+           CLOSE PRINT-CHAMADA
+
+           GOBACK.
+
+      ******************************************************************
+       01000-INICIAR-ARQUIVOS1            SECTION.
+
+           OPEN INPUT CAD-CURSO
+
+           IF NOT FS-CAD-CURSO-OK 
+              DISPLAY 'ERRO NA ABERTURA DO ARQUIVO DE ENTRADA PRIMARIO'
+              GOBACK
+           END-IF.
+
+       01000-INICIAR-ARQUIVOS1-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       01010-INICIAR-ARQUIVOS2            SECTION.
+
+           OPEN I-O LISTA-CHAMADA.
+
+           IF NOT FS-LISTA-CHAMADA-OK 
+              IF FS-LISTA-CHAMADA-CRIAR 
+                 DISPLAY 'ARQUIVO CRIADO COM SUCESSO'
+              ELSE
+                 DISPLAY 'ERRO NA ABERTURA DO ARQUIVO LISTA-CHAMADA'
+                 DISPLAY 'A LISTA ORGANIZADA NAO SERA PROCESSADA'
+                 GOBACK
+              END-IF
+           END-IF.
+
+       01010-INICIAR-ARQUIVOS1-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       01020-INICIAR-ARQUIVOS3            SECTION.
+
+           OPEN OUTPUT PRINT-CHAMADA.
+
+           IF NOT FS-CAD-CURSO-OK 
+              DISPLAY 'ERRO NA ABERTURA DO ARQUIVO DE IMPRESSAO'
+              GOBACK
+           END-IF.
+
+       01020-INICIAR-ARQUIVOS1-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       02000-GRAVACAO-SAIDA1              SECTION.
+           
+           MOVE 10100 TO CAD-ID-CURSO 
+           READ CAD-CURSO 
+              KEY IS CAD-ID-CURSO 
+              INVALID KEY DISPLAY 'PROBLEMA NA PRIMEIRA LEITURA'
+           END-READ
+              
+           PERFORM UNTIL LISTA-EOF 
+
+      *    E PRECISO SABER QUAL O ID DO ULTIMO CURSO VALIDO E MANTER O
+      *    ID DO PRIMERIO CURSO PARA QUE O BALANCEAMENTO POSSA OCORRER 
+      *    BEM. WS-CONTROL GUARDA O ID DO PRIMEIRO CURSO E LIBERA 
+      *    CAD-I-CURSO PARA ABRIR OS OUTROS ENQUANTO KEY. 
+
+              MOVE CAD-ID-CURSO TO WS-CONTROL-CURSO
+
+              PERFORM WITH TEST AFTER  VARYING CAD-ID-CURSO  
+                       FROM CAD-ID-CURSO  BY 1
+                       UNTIL WS-EOF = 'I'
+              
+                 READ CAD-CURSO 
+                    KEY IS CAD-ID-CURSO 
+                    INVALID KEY MOVE 'I' TO WS-EOF 
+                 END-READ
+
+              END-PERFORM 
+              MOVE 'N' TO WS-EOF
+              SUBTRACT 1 FROM CAD-ID-CURSO    
+
+              READ CAD-CURSO 
+                 KEY IS CAD-ID-CURSO 
+                 INVALID KEY DISPLAY 
+                                'ERRO DE LEITURA DO ARQUIVO CAD-CURSO'
+              END-READ
+
+      *    COM O ULTIMO CURSO DAQUELE ID NO BUFFER E O ID DO PRIMEIRO NO
+      *    WS-CONTROL O BALANCEAMENTO PODE ACONTECER CASO NAO EXISTE SO 
+      *    UMA TURMA, NESSE CASO NAO PRECISA DE BALANCEAMENTO
+
+              IF CAD-ID-CURSO (4:2) > ZEROS
+                 PERFORM 02010-BALANCEAMENTO
+              ELSE 
+                 WRITE LISTA FROM CAD
+                 MOVE SPACE TO LISTA 
+              END-IF
+
+      *    COMO OS CURSOS SAO SEPARADOS POR 100 NO ID E AS TURMAS POR 
+      *    DECIMAIS A LEITURA DO PROXIMO CURSO ACONTECE ADICIONANDO 100
+
+              ADD 100 TO WS-CONTROL-CURSO 
+              MOVE WS-CONTROL-CURSO TO CAD-ID-CURSO 
+              
+                 READ CAD-CURSO 
+                    KEY IS CAD-ID-CURSO
+                    INVALID KEY SET LISTA-EOF TO TRUE
+                 END-READ
+              
+
+           END-PERFORM.   
+
+       02000-GRAVACAO-SAIDA1-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       02010-BALANCEAMENTO                SECTION.
+      
+           PERFORM VARYING FD-CAD FROM 1 BY 1 UNTIL 
+                    CAD-NOME-COMPLETO (FD-CAD) = SPACE
+           END-PERFORM
+          
+      *    AQUI O INDEX FD-CAD GUARDA O PRIMEIRO ESPAÇO VAZIO DA ULTIMA
+      *    TURMA, NO CASO DO CURSO COM 61 ALUNO FD-CAD SERIA = 2, POIS
+      *    NA ULTIMA TURMA TERIA 1 ALUNO
+
+           MOVE CAD-ID-CURSO TO WS-CONTADOR1 
+
+           IF FD-CAD < 16
+              COMPUTE WS-BALANCEAMENTO = 
+                 ((WS-CONTADOR1 * 20) + (FD-CAD - 1))/
+                                   (WS-CONTADOR1 + 1)
+
+      *    ESSA EH A FUNCAO QUE DETERMINA QUANTOS ALUNOS POR SALA DEVEM
+      *    EXISTIR ENTAO NO CASO DOS 61 ALUNOS EH SO DIVIDIR 61 POR 4
+      *    O QUE RETORNARIA 15. COMO O BALANCEAMENTO NAO PRECISA SER 
+      *    EXATO QUANDO A ULTIMA TURMA TEM MAIS DE 16 ALUNOS O 
+      *    BALANCEAMENTO NAO EH REALIZADO E O PROGRAMA TRABALHA PARA 
+      *    COLOCAR EM MEDIO 18 ALUNOS NA ULTIMA TURMA. POR ISSO SE
+      *    ADICIONA 1 AO BALANCEMAENTO E SE COLOCA COMO LIMITADOR DO 
+      *    PERFORM VARYING EH 18
+
+              ADD 1 TO WS-BALANCEAMENTO
+              MOVE FD-CAD TO WS-CONTADOR6
+              SET IDX-VET TO 1
+
+              PERFORM VARYING CAD-ID-CURSO FROM WS-CONTROL-CURSO BY 1 
+                       UNTIL CAD-ID-CURSO (4:2) = (WS-CONTADOR1) OR 
+                       WS-CONTADOR6 = 18
+      
+      *    ESSA FUNCAO VAI PEGAR OS ULTIMOS ALUNOS DE CADA TURMA E 
+      *    COLOCAR EM UM VETOR A PARTE ATE CHEGAR NO NUMERO ADEQUADO DA 
+      *    TURMA. NO CASO DOS 61 ALUNOS A DIVISAO DEU 15, ADD 1 FICA 16
+      *    ENTAO O PROGRAMA VAI RETIRAR OS ULTIMOS 4 ALUNOS E COLOCAR 
+      *    NESSE VETOR.
+      
+      *    DEPOIS DE FAZER ISSO ELE ORDENA A TURMA EM ORDEM ALFABETICA 
+      *    GRAVA A TURMA E PASSA PARA A PROXIMA ATE CHEGAR NA PENULTIMA,
+      *    REPETINDO O MESMO PROCEDIMENTO.
+
+                 READ CAD-CURSO
+                    KEY IS CAD-ID-CURSO 
+                    INVALID KEY DISPLAY 
+                              'ERRO 2.1 DE LEITURA DO ARQUIVO CAD-CURSO'
+                 END-READ
+                 
+                 PERFORM VARYING WS-CONTADOR3 FROM 20 BY -1 UNTIL 
+                          WS-CONTADOR3 = WS-BALANCEAMENTO OR 
+                          WS-CONTADOR6 = 20
+
+                    MOVE CAD-ALUNO (WS-CONTADOR3) TO 
+                                       VETOR-GRAVACAO (IDX-VET)
+                    MOVE SPACE TO CAD-ALUNO (WS-CONTADOR3)
+                    SET IDX-VET UP BY 1
+                    ADD 1 TO WS-CONTADOR6
+
+                 END-PERFORM
+                
+                 PERFORM 02020-ORDEM-ALFABETICA
+
+                 MOVE SPACE TO LISTA
+                 MOVE WS-LISTA (2:975) TO LISTA
+                 WRITE LISTA 
+                    INVALID KEY DISPLAY 'PROBLEMA DE GRAVAÇAO 1'
+                 END-WRITE
+                 MOVE SPACES TO WS-LISTA
+                 MOVE SPACE TO CAD (7:970)
+                 
+              END-PERFORM
+      
+      *    AQUI E O TRATAMENTO DA ULTIMA TURMA, ELE VAI ADICIONAR OS  
+      *    ALUNOS REGISTRADOS NO VETOR NO BUFFER E DEPOIS REALIZAR O 
+      *    ORDENAMENTO ALFABETICO E A GRAVACAO
+
+              READ CAD-CURSO 
+                 KEY IS CAD-ID-CURSO 
+                 INVALID KEY DISPLAY 
+                             'ERRO 2.2 DE LEITURA DO ARQUIVO CAD-CURSO'
+              END-READ
+
+              IF CAD-NOME-COMPLETO (FD-CAD) NOT = SPACES 
+                 DISPLAY 'ERRO DE ORDENAMENTO'
+                 GOBACK
+              END-IF
+              
+              MOVE 1 TO WS-CONTADOR2
+
+              PERFORM VARYING FD-CAD FROM FD-CAD BY 1
+                       UNTIL FD-CAD > 20 OR 
+                       VETOR-NOME-COMPLETO (WS-CONTADOR2) = SPACES
+              
+                 MOVE VETOR-GRAVACAO (WS-CONTADOR2) TO 
+                                      CAD-ALUNO (FD-CAD) 
+                 MOVE SPACE TO VETOR-GRAVACAO (WS-CONTADOR2)
+                 
+                 ADD 1 TO WS-CONTADOR2
+                 
+              END-PERFORM
+
+              PERFORM 02020-ORDEM-ALFABETICA
+
+              MOVE SPACE TO LISTA
+              MOVE WS-LISTA (2:975) TO LISTA
+              WRITE LISTA
+                  INVALID KEY DISPLAY 'PROBLEMA DE GRAVAÇAO 2'
+              END-WRITE
+              MOVE SPACES TO WS-LISTA
+
+           ELSE
+
+      *    ESSE ELSE EH PARA O CASO DE CURSOS ONDE A ULTIMA TURMA TENHA 
+      *  MAIS DE 16 ALUNO E PORTANTO O BALANCEAMENTO NAO SERA NECESSARIO 
+
+              PERFORM WITH TEST  AFTER VARYING CAD-ID-CURSO 
+                        FROM WS-CONTROL-CURSO BY 1 
+                        UNTIL CAD-ID-CURSO (4:2) = WS-CONTADOR1 
+                READ CAD-CURSO 
+                    KEY IS CAD-ID-CURSO 
+                    INVALID KEY DISPLAY 
+                             'ERRO 2.3 DE LEITURA DO ARQUIVO CAD-CURSO'
+                END-READ
+
+                PERFORM 02020-ORDEM-ALFABETICA
+
+                MOVE SPACE TO LISTA
+                MOVE WS-LISTA (2:975) TO LISTA
+                WRITE LISTA
+                    INVALID KEY DISPLAY 'PROBLEMA DE GRAVAÇAO 3'
+                END-WRITE
+                MOVE SPACES TO WS-LISTA
+
+              END-PERFORM
+
+           END-IF.
+       02010-BALANCEAMENTO-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       02020-ORDEM-ALFABETICA             SECTION.
+
+      *    ESSA SECAO TRANSFERE OS DADOS DOS ALUNOS DO BUFFER PARA
+      *    VARAIVEIS WS JA ORDENANDO ALFABETICAMENTE
+
+           MOVE SPACES TO WS-LISTA
+           MOVE CAD-ID-CURSO  TO WS-ID-CURSO
+           MOVE CAD-NOME-CURSO TO WS-NOME-CURSO 
+
+           PERFORM VARYING WS-CONTADOR2 FROM 1 BY 1 
+                    UNTIL CAD-NOME-COMPLETO (WS-CONTADOR2) = SPACES 
+                    OR WS-CONTADOR2 > 20
+           
+              IF WS-CONTADOR2 = 1
+                 MOVE CAD-ALUNO (1) TO WS-ALUNO (1)
+              ELSE
+                 PERFORM VARYING I-ALUNO-WS FROM 1 BY 1 UNTIL 
+                          CAD-NOME-COMPLETO (WS-CONTADOR2) <= 
+                          WS-NOME-COMPLETO (I-ALUNO-WS) OR 
+                          WS-NOME-COMPLETO (I-ALUNO-WS) = SPACE  
+                 END-PERFORM
+                 
+                 IF WS-NOME-COMPLETO (I-ALUNO-WS) = SPACES
+                    MOVE CAD-ALUNO (WS-CONTADOR2) TO 
+                                         WS-ALUNO (I-ALUNO-WS)
+                 ELSE 
+                    
+                    PERFORM VARYING WS-CONTADOR4 FROM 20 BY -1
+                             UNTIL WS-CONTADOR4 = I-ALUNO-WS
+
+                       COMPUTE WS-CONTADOR5 = WS-CONTADOR4 - 1                  
+                       MOVE WS-ALUNO (WS-CONTADOR5) TO 
+                                           WS-ALUNO (WS-CONTADOR4)
+
+                    END-PERFORM
+
+                    MOVE CAD-ALUNO (WS-CONTADOR2) 
+                                               TO WS-ALUNO (I-ALUNO-WS)
+
+                 END-IF    
+              END-IF      
+           END-PERFORM
+
+      *   COMO OS NUMERO DE CHAMADA DOS ALUNOS JA TINHAM SIDO ATRIBUIDOS
+      *    PELO PROGRAMA ANTERIOR COM A ORDENACAO ALFABETICA ELES PERDEM
+      *    A SEQUENCIA, ESSA PARTE REORDENA OS NUMEROS DE CHAMADA
+
+           PERFORM VARYING I-ALUNO-WS FROM 1 BY 1 UNTIL 
+                    WS-NOME-COMPLETO (I-ALUNO-WS) = SPACE OR
+                       I-ALUNO-WS > 20
+              MOVE I-ALUNO-WS TO WS-NUMERO-ALUNO (I-ALUNO-WS)
+           END-PERFORM.
+           
+       02020-ORDEM-ALFABETICA-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       03000-REALTORIO-IMPRESSAO SECTION.
+      
+      *    O RELATORIO DE IMPRESSAO IMPRIME UMA LISTA DE CHAMADA EM  
+      *    ARQUIVO TXT QUE EHCOMPATIVEL COM O FORMATO PDF DO PROGRAMA 
+      *    DO MEU PC. EU MEDICADA LINHA EH ARRUMEI O LAYOUT PARA SER 
+      *    COMPATIVEL ELE O ARQUIVO VAI ANEXO. 
+
+           MOVE 'N' TO WS-EOF
+           MOVE SPACES TO LISTA
+           MOVE 10100 TO LISTA-ID-CURSO    
+           
+           READ LISTA-CHAMADA 
+              KEY IS LISTA-ID-CURSO 
+              INVALID KEY DISPLAY 'LEITURA DA LISTA SEQUENCIAL FALHOU'
+           END-READ
+
+           PERFORM UNTIL WS-EOF = 'Y'
+              
+              MOVE LISTA-ID-CURSO TO WS-CAB-ID-CURSO 
+              MOVE LISTA-NOME-CURSO TO WS-CAB-CURSO
+
+              WRITE LINHA-GRAVACAO FROM PRINT-CABECALHO-1 BEFORE 
+              ADVANCING 2 LINES 
+
+              WRITE LINHA-GRAVACAO FROM PRINT-CABECALHO-2 BEFORE 
+              ADVANCING 2 LINES 
+
+              WRITE LINHA-GRAVACAO FROM PRINT-CABECALHO-3 BEFORE 
+              ADVANCING 1 LINES 
+
+              WRITE LINHA-GRAVACAO FROM PRINT-CABECALHO-4 BEFORE 
+              ADVANCING 3 LINES 
+
+              PERFORM VARYING WS-CONTADOR1 FROM 1 BY 1 UNTIL 
+                       WS-CONTADOR1 > 20
+                 
+                 MOVE LISTA-NUMERO-ALUNO (WS-CONTADOR1) TO PRINT-NUMERO
+                 MOVE LISTA-NOME-COMPLETO (WS-CONTADOR1) TO 
+                                                        PRINT-NOME-COMP
+                 MOVE LISTA-MATRICULA (WS-CONTADOR1) TO PRINT-MATRICULA
+                 
+                 WRITE LINHA-GRAVACAO FROM PRINT-INFO-ALUNOS BEFORE 
+                             ADVANCING 2 LINES 
+
+                 IF WS-CONTADOR1 = 20
+                    WRITE LINHA-GRAVACAO FROM PRINT-INFO-ALUNOS BEFORE 
+                    ADVANCING 10 LINES 
+                 END-IF 
+
+              END-PERFORM   
+
+              WRITE LINHA-GRAVACAO FROM WS-PRINT-PAGINAS 
+                          AFTER ADVANCING 7 LINES
+              Move SPACE TO LINHA-GRAVACAO
+              WRITE LINHA-GRAVACAO 
+              ADD 1 TO WS-CONT-PAG  
+                           
+              READ LISTA-CHAMADA NEXT RECORD
+                 AT END MOVE 'Y' TO WS-EOF 
+              END-READ
+
+           END-PERFORM.
+
+       03000-REALTORIO-IMPRESSAO-FIN.
+           EXIT.
+      ******************************************************************
