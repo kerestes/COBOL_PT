@@ -1,0 +1,377 @@
+      ******************************************************************
+      * Author: KERESTES
+      * Date: JULT 15, 2022.
+      * Purpose: EXERCICE
+      * Tectonics: cobc
+      ******************************************************************
+       IDENTIFICATION                        DIVISION. 
+       PROGRAM-ID. GERANDO_BOLETIM.
+      ******************************************************************
+       ENVIRONMENT                           DIVISION.
+      ******************************************************************
+       INPUT-OUTPUT                   SECTION.
+      *-----------------------------------------------------------------
+       FILE-CONTROL. 
+
+           SELECT OPTIONAL LISTA-CHAMADA ASSIGN TO "lista-chamada.dat"
+           ORGANIZATION IS INDEXED
+           ACCESS MODE IS DYNAMIC
+           RECORD KEY IS LISTA-ID-CURSO
+           ALTERNATE KEY IS LISTA-MATRICULA 
+           FILE STATUS IS FS-LISTA-CHAMADA.
+
+           SELECT XML-NOTA ASSIGN TO "xml-nota.xml"
+           ORGANIZATION IS LINE SEQUENTIAL
+           FILE STATUS IS FS-XML-NOTA.
+
+           SELECT PRINT-BOLETIM ASSIGN TO "print-boletin.txt"
+           ORGANIZATION IS LINE SEQUENTIAL
+           FILE STATUS IS FS-PRINT-BOLETIM.
+      ******************************************************************
+       DATA                                  DIVISION.
+      ******************************************************************
+       FILE                           SECTION.
+      *-----------------------------------------------------------------
+       FD  LISTA-CHAMADA.
+       01  LISTA.
+           88 LISTA-EOF VALUE HIGH-VALUES.
+           02 LISTA-ID-CURSO PIC 9(5).
+           02 LISTA-NOME-CURSO PIC X(30).
+           02 LISTA-ALUNO OCCURS 20 INDEXED BY FD-LISTA.
+              03 LISTA-NUMERO-ALUNO PIC 99.
+              03 LISTA-NOME-COMPLETO PIC X(40).
+              03 LISTA-MATRICULA PIC 9(5).
+       
+       FD  XML-NOTA.
+       01  XML-LINHA PIC X(80).
+
+       FD  PRINT-BOLETIM.
+       01  LINHA-RECORD PIC X(90).
+      *-----------------------------------------------------------------
+       WORKING-STORAGE                SECTION.
+      *-----------------------------------------------------------------
+
+      *    VARAVEIS PARA RECEBER E TRATAR O DOC XML
+      *    O PROGRAMA RECEBE AS NOTAS DOS ALUNOS EM UM DOCUMENTO XML
+      *    ONDE TEM AS NOTAS E A MATRICULA DE CADA ALUNO.
+
+       01  REGISTRO-ALUNO OCCURS 2000 INDEXED BY I-REG-ALUNO.
+           02 XML-MATRICULA PIC 9(5).
+           02 XML-TESTE1   PIC 99.
+           02 XML-TESTE2   PIC 99.
+           02 XML-TESTE3   PIC 99.
+
+       77  WS-EOF PIC X VALUE 'N'.
+
+      *    CONTADORES
+
+       77  WS-CONTADOR1 PIC 9(4). 
+       77  WS-CONTADOR2 PIC 9(5) VALUE 1.
+
+      *    VARIAVEIS DE CONTROLE DE ERRO
+
+       01  FS-LISTA-CHAMADA PIC 99.
+           88 FS-LISTA-CHAMADA-OK VALUE '00'.
+
+       01  FS-XML-NOTA PIC 99.
+           88 FS-XML-NOTA-OK VALUE '00'.
+
+       01  FS-PRINT-BOLETIM PIC 99.
+           88 FS-PRINT-BOLETIM-OK VALUE '00'.
+
+      *    VARIAVEIS DO PRINT FILE
+
+       01  PRINT-CONTROL.
+           02 WS-PRINT-PAGES.
+              03 FILLER PIC X(43) VALUE SPACES.
+              03 WS-CONT-PAG PIC 9(4) VALUE 1.
+       
+       01  PRINT-CABECALHO-1.
+           02 FILLER PIC X(37) VALUE SPACES.
+           02 FILLER PIC X(20) VALUE 'SORBONNE UNIVERSITE'.
+
+       01  PRINT-CABECALHO-2.
+           02 FILLER PIC X(22) VALUE SPACES.
+           02 WS-CABECALHO-ID-CURSO PIC X(5).
+           02 FILLER PIC X(35) VALUE SPACES.
+           02 WS-CABECALHO-CURSO PIC X(20).
+
+       01  PRINT-CABECALHO-3.
+           02 FILLER PIC X(2) VALUE SPACES.
+           02 FILLER PIC X(6) VALUE 'NUMERO'.
+           02 FILLER PIC X(3) VALUE SPACES.
+           02 FILLER PIC X(30) VALUE 'NOM COMPLET'.
+           02 FILLER PIC x(11) VALUE 'INSCRIPTION'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE 'NOTA 1'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE 'NOTA 2'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE 'NOTA 3'.
+           02 FILLER PIC X(2) VALUE SPACES.
+           02 FILLER PIC X(6) VALUE 'MEDIA'.
+
+       01  PRINT-CABECALHO-4.
+           02 FILLER PIC X(2) VALUE SPACES.
+           02 FILLER PIC X(6) VALUE '------'.
+           02 FILLER PIC X(3) VALUE SPACES.
+           02 FILLER PIC X(30) VALUE '---------------'.
+           02 FILLER PIC x(11) VALUE '-----------'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE '------'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE '------'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE '------'.
+           02 FILLER PIC XX VALUE SPACES.
+           02 FILLER PIC X(6) VALUE '------'.
+
+       01  PRINT-INFO-ELEVES.
+           02 FILLER PIC X(2) VALUE SPACES.
+           02 PRINT-NUMERO-ALUNO PIC X(6).
+           02 FILLER PIC X(3) VALUE SPACES.
+           02 PRINT-NOME-COMPLETO PIC X(30).
+           02 PRINT-MATRICULA PIC 9(5).
+           02 FILLER PIC X(6) VALUE SPACES.
+           02 FILLER PIC X(4) VALUE SPACES.
+           02 PRINT-NOTA1 PIC 9(2).
+           02 FILLER PIC X(6) VALUE SPACES.
+           02 PRINT-NOTA2 PIC 9(2).
+           02 FILLER PIC X(6) VALUE SPACES.
+           02 PRINT-NOTA3 PIC 9(2).
+           02 FILLER PIC X(6) VALUE SPACES.
+           02 PRINT-MEDIA PIC 9(2).
+
+      ******************************************************************
+       PROCEDURE                             DIVISION.
+      ******************************************************************
+           PERFORM 01000-ABRIR-ARQUIVO1
+
+           PERFORM 01001-ABRIR-ARQUIVO2
+
+           PERFORM 02000-TRATAMENTO-XML
+
+           PERFORM 01002-ABRIR-ARQUIVO3
+
+           PERFORM 03000-RELATORIO-NOTAS
+           
+           CLOSE LISTA-CHAMADA 
+           CLOSE XML-NOTA 
+           CLOSE PRINT-BOLETIM
+
+           GOBACK.
+
+      ******************************************************************
+       01000-ABRIR-ARQUIVO1           SECTION.
+
+           OPEN INPUT LISTA-CHAMADA 
+
+           IF NOT FS-LISTA-CHAMADA-OK 
+              DISPLAY 'ERRO NA ABERTURA DO ARQUIVO 1'
+           END-IF.
+
+       01000-ABRIR-ARQUIVO1-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       01001-ABRIR-ARQUIVO2           SECTION.
+
+           OPEN INPUT XML-NOTA 
+
+           IF NOT FS-XML-NOTA-OK 
+              DISPLAY 'ERRO NA ABERTURA DO ARQUIVO 2'
+           END-IF.
+
+       01001-ABRIR-ARQUIVO2-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       01002-ABRIR-ARQUIVO3           SECTION.
+
+           OPEN OUTPUT PRINT-BOLETIM  
+
+           IF NOT FS-PRINT-BOLETIM-OK 
+              DISPLAY 'ERRO NA ABERTURA DO ARQUIVO 3'
+           END-IF.
+
+       01002-ABRIR-ARQUIVO3-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       02000-TRATAMENTO-XML           SECTION.
+
+           READ XML-NOTA
+              AT END MOVE 'Y' TO WS-EOF
+           END-READ
+           
+      *    A CONVERSAO DE XML ACONTECE A PARTIR DO SIMBOLO < > QUE ABRE
+      *    E FECHA UM CAMPO. CASO A STRING QUE VENHA DEPOIS DESSE 
+      *    CARACTER SEJA ALGUM DOS CAMPOS QUE SERAO UTILIZADOS O 
+      *    PROGRAMA IDENTIFICA E PEGA O VALOR
+
+      *    E IMPORTANTE FRISAR QUE NESSE CASO ESPECIFICO O PRIMEIRO 
+      *    ALUNO TEM MATRICULA 10001, OU SEJA, 1, E POSTO NO PRIMEIRO 
+      *    LUGAR DO ARRAY, CASO O ARQUIVO NAO ESTIVESSE ORGANIZADOR E AS
+      *    MATRICULAS NAO COINCIDICEM COM OS LUGARES NO ARRAY, SERIA
+      *    NECESSARIO ACRESCENTAR ALGUMAS LINHAS PARA FORCAR A RELACAO
+      *    ENTRE O ARQUIVO XML E O ARQUIVO INDEXED
+
+           PERFORM UNTIL WS-EOF = 'Y'
+
+              PERFORM VARYING I-REG-ALUNO FROM 1 BY 1 UNTIL 
+                       XML-LINHA (I-REG-ALUNO:1)= '<'
+              END-PERFORM
+              SET I-REG-ALUNO UP BY 1
+
+              EVALUATE XML-LINHA(I-REG-ALUNO:6)
+                 WHEN 'Matric' 
+                    SET I-REG-ALUNO UP BY 10
+                    MOVE XML-LINHA (I-REG-ALUNO:5) TO 
+                             XML-MATRICULA (WS-CONTADOR2) 
+                 WHEN 'Test 1'
+                    SET I-REG-ALUNO UP BY 7
+                    COMPUTE WS-CONTADOR1 = I-REG-ALUNO + 2
+                    IF XML-LINHA (WS-CONTADOR1 : 1) = '<'
+                       MOVE 10 TO XML-TESTE1 (WS-CONTADOR2)
+                    ELSE 
+                       MOVE XML-LINHA (I-REG-ALUNO:1) TO 
+                             XML-TESTE1 (WS-CONTADOR2)
+                    END-IF  
+                 WHEN 'Test 2'
+                    SET I-REG-ALUNO UP BY 7
+                    COMPUTE WS-CONTADOR1 = I-REG-ALUNO + 2
+                    IF XML-LINHA (WS-CONTADOR1 : 1) = '<'
+                       MOVE 10 TO XML-TESTE2 (WS-CONTADOR2)
+                    ELSE 
+                       MOVE XML-LINHA (I-REG-ALUNO:1) TO 
+                             XML-TESTE2 (WS-CONTADOR2)
+                    END-IF
+                 WHEN 'Test 3'
+                    SET I-REG-ALUNO UP BY 7
+                    COMPUTE WS-CONTADOR1 = I-REG-ALUNO + 2
+                    IF XML-LINHA (WS-CONTADOR1 : 1) = '<'
+                       MOVE 10 TO XML-TESTE3 (WS-CONTADOR2)
+                    ELSE 
+                       MOVE XML-LINHA (I-REG-ALUNO:1) TO 
+                             XML-TESTE3 (WS-CONTADOR2)
+                    END-IF 
+                    ADD 1 TO WS-CONTADOR2 
+              END-EVALUATE
+
+              READ XML-NOTA
+                 AT END MOVE 'Y' TO WS-EOF
+              END-READ
+
+           END-PERFORM.
+       02000-TRATAMENTO-XML-FIM.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       03000-RELATORIO-NOTAS          SECTION. 
+           
+           MOVE 'N' TO WS-EOF
+
+           READ LISTA-CHAMADA NEXT RECORD 
+              AT END MOVE 'Y' TO WS-EOF
+           END-READ
+              
+      *    O SISTEMA DE IMPRESSAO DO RELATORIO EH BEM SIMPLES, SE 
+      *    IMPRIME OS CABECALHOS POR PAGINAS E TODOS OS ALUNOS DE UM 
+      *    REGISTRO INDEXADO. LEMBRANDO QUE CADA REGISTRO CORRESPONDE A
+      *    UMA TURMA. O LAYOUT EH BASEADO NO SISTEMA DE GERAÇAO DE
+      *    ARQUIVO PDF DO MEU PC. 66 LINHAS POR PAGINAS E 90 CARACTERES
+      *    POR LINHA.
+
+           PERFORM UNTIL WS-EOF = 'Y'
+              MOVE 1 TO WS-CONTADOR2              
+              PERFORM 03001-GRAVACAO-CABECALHOS
+
+              PERFORM VARYING FD-LISTA  FROM 1 BY 1
+                       UNTIL FD-LISTA > 20
+
+                 IF LISTA-NOME-COMPLETO (FD-LISTA) NOT = SPACE
+                    
+                    MOVE SPACES TO LINHA-RECORD
+                    
+                    MOVE ZEROS TO I-REG-ALUNO                  
+                    MOVE LISTA-MATRICULA (FD-LISTA) (2:4) 
+                                                        TO WS-CONTADOR1 
+                    MOVE WS-CONTADOR1 TO I-REG-ALUNO
+                 
+                    MOVE LISTA-NUMERO-ALUNO (FD-LISTA) 
+                                                  TO PRINT-NUMERO-ALUNO
+                    MOVE LISTA-NOME-COMPLETO (FD-LISTA) 
+                                                  TO PRINT-NOME-COMPLETO
+                    MOVE LISTA-MATRICULA (FD-LISTA)  TO PRINT-MATRICULA
+
+                    MOVE XML-TESTE1 (I-REG-ALUNO) TO PRINT-NOTA1 
+                    MOVE XML-TESTE2 (I-REG-ALUNO) TO PRINT-NOTA2
+                    MOVE XML-TESTE3 (I-REG-ALUNO) TO PRINT-NOTA3
+
+                    COMPUTE PRINT-MEDIA = ((PRINT-NOTA3 * 2)+ 
+                             PRINT-NOTA2 + PRINT-NOTA1)/4
+
+                    IF PRINT-MEDIA < 5
+                       ADD 1 TO WS-CONTADOR2 
+                    END-IF
+
+                    WRITE LINHA-RECORD FROM PRINT-INFO-ELEVES BEFORE 
+                                                       ADVANCING 2 LINES
+
+                 ELSE
+                    MOVE SPACE TO LINHA-RECORD 
+                    WRITE LINHA-RECORD BEFORE ADVANCING 2 LINES
+                 END-IF       
+              END-PERFORM
+              
+              STRING '    O NUMERO DE ALUNOS REPROVADOS E DE: '
+                      WS-CONTADOR2 DELIMITED BY SIZE 
+                      INTO LINHA-RECORD
+              
+              WRITE LINHA-RECORD 
+              MOVE SPACE TO LINHA-RECORD 
+
+              WRITE LINHA-RECORD FROM WS-PRINT-PAGES AFTER ADVANCING 
+                                                                18 LINES
+              MOVE SPACES TO LINHA-RECORD 
+              WRITE LINHA-RECORD BEFORE ADVANCING 1 LINE 
+              ADD 1 TO WS-CONT-PAG 
+
+              READ LISTA-CHAMADA NEXT RECORD 
+                 AT END MOVE 'Y' TO WS-EOF
+              END-READ
+
+           END-PERFORM.
+              
+
+       03000-RELATORIO-NOTAS-FIN.
+           EXIT.
+      ******************************************************************
+
+      ******************************************************************
+       03001-GRAVACAO-CABECALHOS              SECTION.
+      
+           MOVE SPACES TO LINHA-RECORD
+           MOVE LISTA-ID-CURSO TO WS-CABECALHO-ID-CURSO 
+           MOVE LISTA-NOME-CURSO TO WS-CABECALHO-CURSO 
+           
+           WRITE LINHA-RECORD FROM PRINT-CABECALHO-1 BEFORE ADVANCING 2
+                                                                 LINES
+
+           MOVE SPACES TO LINHA-RECORD
+           WRITE LINHA-RECORD FROM PRINT-CABECALHO-2 BEFORE ADVANCING 2
+                                                                 LINES 
+           MOVE SPACES TO LINHA-RECORD
+           WRITE LINHA-RECORD FROM PRINT-CABECALHO-3 BEFORE ADVANCING 1
+                                                                 LINE 
+           MOVE SPACES TO LINHA-RECORD
+           WRITE LINHA-RECORD FROM PRINT-CABECALHO-4 BEFORE ADVANCING 2
+                                                                 LINES.
+
+       03001-GRAVACAO-CABECALHOS-FIM.
+           EXIT.
+      ******************************************************************
