@@ -336,9 +336,9 @@
               MOVE SPACE TO LINHA-RECORD 
 
               WRITE LINHA-RECORD FROM WS-PRINT-PAGES AFTER ADVANCING 
-                                                                18 LINES
+                                                                17 LINES
               MOVE SPACES TO LINHA-RECORD 
-              WRITE LINHA-RECORD BEFORE ADVANCING 1 LINE 
+              WRITE LINHA-RECORD
               ADD 1 TO WS-CONT-PAG 
 
               READ LISTA-CHAMADA NEXT RECORD 
